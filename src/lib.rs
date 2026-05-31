@@ -1,14 +1,13 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+#![doc = include_str!("../README.md")]
+#![deny(unsafe_code)]
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+mod queue;
+mod state;
+mod termios;
+mod transform;
+mod types;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use state::{Endpoint, FlushTarget, Readiness, State};
+pub use termios::{Termios, WindowSize};
+pub use transform::{input, output};
+pub use types::{InputResult, NoopSys, OutputResult, Signal, Sys};

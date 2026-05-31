@@ -2,5 +2,63 @@
 name = "line-discipline"
 version = "0.1.0"
 edition = "2024"
+authors = ["Joshua Smotritsky"]
+license = "MIT"
+rust-version = "1.85"
+description = "PTY line discipline"
+readme = "README.md"
+keywords = ["pty", "terminal", "tty", "line-discipline", "termios"]
+categories = ["os"]
+include = ["src/**/*", "Cargo.toml", "LICENSE", "README.md"]
 
 [dependencies]
+rkyv = { version = "0.8", default-features = false, features = ["std", "alloc", "bytecheck"] }
+
+[dev-dependencies]
+pretty_assertions = "1"
+
+[lints.rust]
+unsafe_code = "warn"
+missing_docs = "warn"
+rust_2024_compatibility = { level = "warn", priority = -1 }
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+
+# Don't panic
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+indexing_slicing = "warn"
+
+# Numeric
+cast_possible_truncation = "warn"
+cast_sign_loss = "warn"
+cast_possible_wrap = "warn"
+arithmetic_side_effects = "warn"
+
+# Code quality
+cognitive_complexity = "warn"
+too_many_lines = "warn"
+must_use_candidate = "warn"
+missing_const_for_fn = "warn"
+module_name_repetitions = "warn"
+
+# Allowed
+redundant_pub_crate = "allow"
+blanket_clippy_restriction_lints = "allow"
+min_ident_chars = "allow"
+single_char_lifetime_names = "allow"
+single_call_fn = "allow"
+question_mark_used = "allow"
+absolute_paths = "allow"
+std_instead_of_core = "allow"
+std_instead_of_alloc = "allow"
+error_impl_error = "allow"
+ref_patterns = "allow"
+shadow_reuse = "allow"
+shadow_same = "allow"
+shadow_unrelated = "allow"
