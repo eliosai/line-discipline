@@ -1,54 +1,130 @@
 [package]
 name = "line-discipline"
-version = "0.2.0"
+version = "1.0.0"
 edition = "2024"
 authors = ["Joshua Smotritsky"]
 license = "MIT"
 rust-version = "1.85"
-description = "PTY line discipline"
+description = "The Linux n_tty line discipline as a library"
 readme = "README.md"
+repository = "https://github.com/eliosai/line-discipline"
 keywords = ["pty", "terminal", "tty", "line-discipline", "termios"]
 categories = ["os"]
-include = ["src/**/*", "Cargo.toml", "LICENSE", "README.md"]
+include = ["/src/**/*", "/Cargo.toml", "/LICENSE", "/README.md"]
+
+[features]
+rkyv = ["dep:rkyv"]
 
 [dependencies]
-rkyv = { version = "0.8", default-features = false, features = ["std", "alloc", "bytecheck"] }
+rkyv = { version = "0.8.17", default-features = false, features = ["std", "alloc", "bytecheck"], optional = true }
 
 [dev-dependencies]
 pretty_assertions = "1"
 
 [lints.rust]
-unsafe_code = "warn"
+unsafe_code = "forbid"
 missing_docs = "warn"
-rust_2024_compatibility = { level = "warn", priority = -1 }
 
 [lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 
 # Don't panic
+string_slice = "warn"
+indexing_slicing = "warn"
 unwrap_used = "warn"
 expect_used = "warn"
 panic = "warn"
 todo = "warn"
 unimplemented = "warn"
-indexing_slicing = "warn"
+unreachable = "warn"
+get_unwrap = "warn"
+unwrap_in_result = "warn"
+unchecked_time_subtraction = "warn"
+panic_in_result_fn = "warn"
 
-# Numeric
-cast_possible_truncation = "warn"
+# Don't fail silently
+let_underscore_future = "warn"
+let_underscore_must_use = "warn"
+unused_result_ok = "warn"
+map_err_ignore = "warn"
+assertions_on_result_states = "warn"
+
+# Numeric correctness
+float_cmp = "warn"
+float_cmp_const = "warn"
+lossy_float_literal = "warn"
 cast_sign_loss = "warn"
+invalid_upcast_comparisons = "warn"
 cast_possible_wrap = "warn"
+cast_precision_loss = "warn"
+cast_possible_truncation = "warn"
 arithmetic_side_effects = "warn"
+integer_division = "warn"
+integer_division_remainder_used = "warn"
+
+# Code smells
+rc_mutex = "warn"
+debug_assert_with_mut_call = "warn"
+iter_not_returning_iterator = "warn"
+expl_impl_clone_on_copy = "warn"
+infallible_try_from = "warn"
+dbg_macro = "warn"
+print_stdout = "warn"
+print_stderr = "warn"
+use_debug = "warn"
+
+# Lint discipline
+allow_attributes = "warn"
+allow_attributes_without_reason = "warn"
 
 # Code quality
 cognitive_complexity = "warn"
 too_many_lines = "warn"
+too_many_arguments = "warn"
+excessive_nesting = "warn"
+
+# No re-exports
+wildcard_imports = "warn"
+enum_glob_use = "warn"
+wildcard_dependencies = "warn"
+
+# API design
 must_use_candidate = "warn"
 missing_const_for_fn = "warn"
+redundant_pub_crate = "warn"
 module_name_repetitions = "warn"
+items_after_statements = "warn"
+semicolon_if_nothing_returned = "warn"
+semicolon_inside_block = "warn"
 
-# Allowed
-redundant_pub_crate = "allow"
+# Type safety
+exhaustive_enums = "warn"
+exhaustive_structs = "warn"
+partial_pub_fields = "warn"
+as_conversions = "warn"
+default_numeric_fallback = "warn"
+unseparated_literal_suffix = "warn"
+self_named_module_files = "warn"
+
+# String handling
+str_to_string = "warn"
+string_add = "warn"
+string_add_assign = "warn"
+format_push_string = "warn"
+
+# Ownership costs
+clone_on_ref_ptr = "warn"
+rc_buffer = "warn"
+verbose_file_reads = "warn"
+iter_over_hash_type = "warn"
+
+# Every comment is one line, so the sectioned doc lints cannot apply
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+missing_safety_doc = "allow"
+
+# Allowed (conflict or too noisy)
 blanket_clippy_restriction_lints = "allow"
 min_ident_chars = "allow"
 single_char_lifetime_names = "allow"
@@ -58,7 +134,10 @@ absolute_paths = "allow"
 std_instead_of_core = "allow"
 std_instead_of_alloc = "allow"
 error_impl_error = "allow"
+pub_with_shorthand = "allow"
 ref_patterns = "allow"
+impl_trait_in_params = "allow"
+pattern_type_mismatch = "allow"
 shadow_reuse = "allow"
 shadow_same = "allow"
 shadow_unrelated = "allow"

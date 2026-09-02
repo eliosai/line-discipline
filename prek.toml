@@ -4,34 +4,29 @@ default_install_hook_types = ["pre-commit", "pre-push"]
 repo = "builtin"
 hooks = [
   { id = "check-toml", stages = ["pre-commit"] },
+  { id = "check-yaml", stages = ["pre-commit"] },
+  { id = "check-merge-conflict", stages = ["pre-commit"] },
+  { id = "check-symlinks", stages = ["pre-commit"] },
+  { id = "end-of-file-fixer", stages = ["pre-commit"], exclude = "^\\.agents/skills/" },
+  { id = "trailing-whitespace", stages = ["pre-commit"], exclude = "^\\.agents/skills/" },
 ]
 
 [[repos]]
 repo = "local"
 hooks = [
   {
-    id = "cargo-fmt",
-    name = "cargo fmt --all",
+    id = "just-check",
+    name = "just check",
     language = "system",
-    entry = "cargo fmt --all",
+    entry = "just check",
     pass_filenames = false,
-    files = "\\.rs$|^rustfmt\\.toml$",
     stages = ["pre-commit"],
   },
   {
-    id = "cargo-clippy",
-    name = "cargo clippy --workspace -- -D warnings",
+    id = "just-test",
+    name = "just test",
     language = "system",
-    entry = "cargo clippy --workspace -- -D warnings",
-    pass_filenames = false,
-    files = "\\.rs$|^Cargo\\.toml$|^Cargo\\.lock$",
-    stages = ["pre-commit"],
-  },
-  {
-    id = "cargo-test",
-    name = "cargo test --workspace",
-    language = "system",
-    entry = "cargo test --workspace",
+    entry = "just test",
     pass_filenames = false,
     stages = ["pre-push"],
   },
