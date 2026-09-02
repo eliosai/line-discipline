@@ -10,7 +10,7 @@ readme = "README.md"
 repository = "https://github.com/eliosai/line-discipline"
 keywords = ["pty", "terminal", "tty", "line-discipline", "termios"]
 categories = ["os"]
-include = ["src/**/*", "Cargo.toml", "LICENSE", "README.md"]
+include = ["/src/**/*", "/Cargo.toml", "/LICENSE", "/README.md"]
 
 [features]
 rkyv = ["dep:rkyv"]

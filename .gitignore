@@ -1,1 +1,15 @@
-/target
+target/
+*.pdb
+*.profraw
+junit.xml
+
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local agent state stays out; the skills link is tracked
+.claude/*
+!.claude/skills
+.mcp.json
