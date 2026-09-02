@@ -19,7 +19,12 @@ rkyv = ["dep:rkyv"]
 rkyv = { version = "0.8.17", default-features = false, features = ["std", "alloc", "bytecheck"], optional = true }
 
 [dev-dependencies]
+divan = { package = "codspeed-divan-compat", version = "5.0.1" }
 pretty_assertions = "1"
+
+[[bench]]
+name = "discipline"
+harness = false
 
 [lints.rust]
 unsafe_code = "forbid"
