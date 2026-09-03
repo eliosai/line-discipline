@@ -26,6 +26,16 @@ pub struct InputResult {
     pub signal: Option<Signal>,
 }
 
+/// What one [`State::set_termios`](crate::State::set_termios) call released
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[non_exhaustive]
+pub struct TermiosResult {
+    /// Echo the terminal gets once the new termios drops `IXON` while `VSTOP` held it
+    pub to_master: Vec<u8>,
+    /// The line under edit, released to the program when `ICANON` or `EXTPROC` changed
+    pub to_replica: Vec<u8>,
+}
+
 /// What one [`State::output`](crate::State::output) call produced
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]

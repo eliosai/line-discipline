@@ -9,15 +9,20 @@ One pty's line discipline. `State::new(termios)` starts one, and `State::default
 with `Termios::default()`.
 
 - `termios()` returns the termios in force
-- `set_termios(termios)` installs a termios, the replica's `tcsetattr`, and returns the bytes a
-  switch out of canonical mode (or into `EXTPROC`) releases to the program; it also restarts
-  output that `VSTOP` held when the new termios drops `IXON`
+- `set_termios(termios)` installs a termios, the replica's `tcsetattr`, and returns a
+  `TermiosResult`: the line an `ICANON` or `EXTPROC` change releases to the program, and the echo
+  a dropped `IXON` releases to the terminal along with the output `VSTOP` held
 - `flush_input()` drops the line under edit, the `TCIFLUSH` half of `tcflush`
+- `stop_output()` and `start_output()` are the `TCOOFF` and `TCOON` halves of `tcflow`: the
+  first holds output and echo, and only the second releases them, whatever `VSTART`, `IXANY` or
+  a dropped `IXON` says in between
+- `is_output_stopped()` reports whether `VSTOP` or `stop_output` holds output, so a driver knows
+  an `output` call would consume nothing
 - `input(bytes)` takes bytes the master wrote and returns an `InputResult`
 - `output(bytes)` takes bytes the replica wrote and returns an `OutputResult`
 
-`State` is `Debug`, `Clone`, `PartialEq`, `Eq` and `Default`, and with the `rkyv` feature
-`rkyv::Archive`, `Serialize` and `Deserialize`.
+`State` is `#[non_exhaustive]` with every field private, `Debug`, `Clone`, `PartialEq`, `Eq` and
+`Default`, and with the `rkyv` feature `rkyv::Archive`, `Serialize` and `Deserialize`.
 
 ## `Termios`
 
@@ -41,6 +46,12 @@ values, the `c_cflag` bits `CBAUD` through `CRTSCTS` with every `B*` rate and `I
 signal to deliver once `to_replica` is drained). The call takes every byte offered unless an end
 of file on an empty line or a signal character ends it, and then `consumed` stops after that
 byte. The struct is `#[non_exhaustive]` and `Debug`, `Clone`, `PartialEq`, `Eq` and `Default`.
+
+## `TermiosResult`
+
+`to_master` (the echo a dropped `IXON` releases) and `to_replica` (the line an `ICANON` or
+`EXTPROC` change releases). The struct is `#[non_exhaustive]` and `Debug`, `Clone`, `PartialEq`,
+`Eq` and `Default`.
 
 ## `OutputResult`
 
