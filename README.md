@@ -82,8 +82,9 @@ assert_eq!(shown.to_master, b"hello\r\n");
 ```
 
 Under `IXON` the `VSTOP` character holds output and echo, and `VSTART`, any byte under `IXANY`,
-or a signal character releases them. While output is held `output` consumes nothing, and the
-caller retries after the next `input`.
+or a signal character releases them. `stop_output` and `start_output` are the `TCOOFF` and
+`TCOON` halves of `tcflow`. While output is held `is_output_stopped` is true and `output`
+consumes nothing, and the caller retries once it is false.
 
 ## Termios
 
@@ -100,12 +101,13 @@ raw.output_flags &= !Termios::OPOST;
 
 let mut state = State::default();
 assert_eq!(state.input(b"ab").to_master, b"ab");
-assert_eq!(state.set_termios(raw), b"ab");
+assert_eq!(state.set_termios(raw).to_replica, b"ab");
 assert_eq!(state.input(b"\x03\r").to_replica, b"\x03\r");
 ```
 
-`set_termios` returns the line a switch out of canonical mode releases to the program, and
-`flush_input` is the `TCIFLUSH` half of `tcflush`. The discipline reads the input, output and
+`set_termios` returns the line a switch out of canonical mode releases to the program and the
+echo a dropped `IXON` releases to the terminal, and `flush_input` is the `TCIFLUSH` half of
+`tcflush`. The discipline reads the input, output and
 local flags and the control characters; the control flags, the speeds, `VMIN` and `VTIME` travel
 with the record for the caller, who owns the file descriptors, the process groups and the clock.
 

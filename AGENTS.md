@@ -69,7 +69,7 @@ with every field public or none, and `docs/api.md` lists every public item.
 - keep functions and methods at 25 lines or less and files under 400 lines; split by behavior first
 - never pair `x.rs` with an `x/` directory, and never use `#[path]`; a module with children is `x/mod.rs`
 - production code never panics; `unwrap`, `expect` and `panic` live only in tests
-- the byte loop allocates nothing per byte; the result vectors grow once per call
+- the byte loop allocates nothing per byte beyond the growth of the result vectors
 - read `rust-best-practices`, `coding-guidelines` and `stop-slop` before every Rust change, and
   `codebase-design` before changing a module boundary or a public signature
 

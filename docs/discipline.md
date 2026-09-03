@@ -16,8 +16,9 @@ column. The caller holds what the kernel keeps outside the line discipline:
   the caller's, and a signal the kernel would not send (no session on the tty) is still named
 - `VMIN`, `VTIME` and blocking: the crate hands over what is complete and the caller decides when
   a read returns
-- `tcflow`: `TCOOFF` and `TCOON` stop and start the caller's output path, and `TCIOFF` and
-  `TCION` write `VSTOP` and `VSTART` to the master
+- `tcflow`: `TCIOFF` and `TCION` write `VSTOP` and `VSTART` to the master, while `TCOOFF` and
+  `TCOON` are `stop_output` and `start_output`, since the kernel's `tco_stopped` decides whether
+  `VSTART`, `IXANY` or a dropped `IXON` may restart output
 - the window size, packet mode (`TIOCPKT`), hangup on last close, `IXOFF` (which `n_tty` does not
   implement on a pty) and `IMAXBEL` (which `n_tty` does not implement)
 
@@ -42,7 +43,8 @@ Per byte, in order:
 
 A special byte, in order:
 
-- `VSTART` releases held output and echo, `VSTOP` holds them, and neither is echoed or queued.
+- `VSTART` releases held output and echo unless `stop_output` holds them, `VSTOP` holds them, and
+  neither is echoed or queued.
 - `VINTR`, `VQUIT` and `VSUSP` under `ISIG` name their signal and end the call after their byte,
   so the caller delivers the signal between the bytes before it and the bytes after it. Unless
   `NOFLSH` is set, the line under edit, the held echo, and the echo and lines this call already
@@ -82,14 +84,14 @@ A special byte, in order:
 - An echoed byte goes through the output rules when `OPOST` is set and out verbatim otherwise;
   `0xff` always takes one column and skips `OPOST`, as the kernel's escaped echo byte does.
 - The column a line starts at is recorded before its first echoed byte and used to erase a tab.
-- Under `VSTOP` the echo waits in `State` and `VSTART`, `IXANY`, a signal character, or the next
-  `output` call after `IXON` is dropped releases it; once more than 4096 bytes wait, the oldest
-  are dropped until 3808 remain, the kernel's discard watermark.
+- Under `VSTOP` the echo waits in `State` and `VSTART`, `IXANY`, a signal character, or a
+  `set_termios` that drops `IXON` releases it; once more than 4096 bytes wait, the oldest are
+  dropped until 3808 remain, the kernel's discard watermark.
 
 ## Output
 
 `output` post-processes under `OPOST`, passes bytes through otherwise, and consumes nothing while
-`VSTOP` holds output. Per byte:
+`VSTOP` or `stop_output` holds output, which `is_output_stopped` reports. Per byte:
 
 - `\n`: `ONLRET` resets the column; `ONLCR` writes `\r\n` and resets the column and line start
 - `\r`: dropped at column zero under `ONOCR`; becomes `\n` under `OCRNL`, resetting the column
@@ -104,8 +106,13 @@ A special byte, in order:
 
 `set_termios` mirrors `n_tty_set_termios`: when `ICANON` or `EXTPROC` changes, the line under
 edit is released to the program as raw bytes, the way the kernel marks it readable, and the
-`ECHOPRT` run and the literal-next state are reset; when `IXON` is dropped, held output restarts.
+`ECHOPRT` run and the literal-next state are reset; when `IXON` is dropped, held output restarts
+and the held echo is released to the terminal.
 `flush_input` mirrors `TCIFLUSH`: the line under edit and the `ECHOPRT` run are dropped.
+`stop_output` and `start_output` mirror `TCOOFF` and `TCOON`: the first holds output and echo the
+way `VSTOP` does and blocks every restart but `start_output`, and `start_output` releases the
+output at once and the echo with the next `input` or `output` call, the way the kernel's
+`start_tty` wakes the writer without processing echo.
 
 ## Known differences
 

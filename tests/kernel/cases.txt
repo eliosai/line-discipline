@@ -571,6 +571,111 @@ replica
 write replica 78
 master 78
 replica
+case switch_ixon_off_releases_echo
+termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+write master 136162
+master
+replica
+termios 400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+master 6162
+replica
+case tcflow_off_holds_output
+termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+tcoff
+master
+replica
+write replica 78
+written 0
+master
+replica
+tcon
+master
+replica
+write replica 79
+master 79
+replica
+case tcflow_off_ignores_vstart
+termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+tcoff
+master
+replica
+write master 11
+master
+replica
+write replica 78
+written 0
+master
+replica
+tcon
+master
+replica
+write replica 79
+master 79
+replica
+case tcflow_off_ignores_ixany
+termios 6400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+tcoff
+master
+replica
+write master 61
+master
+replica
+write replica 78
+written 0
+master
+replica
+case tcflow_off_ignores_ixon_drop
+termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+tcoff
+master
+replica
+termios 400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+master
+replica
+write replica 78
+written 0
+master
+replica
+case tcflow_on_releases_vstop
+termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+write master 13
+master
+replica
+tcoff
+master
+replica
+tcon
+master
+replica
+write replica 78
+master 78
+replica
+case tcflow_off_echo_waits
+termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+tcoff
+master
+replica
+write master 6162
+master
+replica
+tcon
+master
+replica
+write master 63
+master 616263
+replica
+case tcflow_off_intr_keeps_stopped
+termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+tcoff
+master
+replica
+write master 03
+master
+replica
+write replica 78
+written 0
+master
+replica
 case switch_resets_lnext
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 16

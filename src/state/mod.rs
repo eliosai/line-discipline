@@ -3,7 +3,7 @@ mod echo;
 mod output;
 mod receive;
 
-use crate::result::{InputResult, OutputResult};
+use crate::result::{InputResult, OutputResult, TermiosResult};
 use crate::termios::Termios;
 
 /// Bytes one canonical line may hold, the kernel's `N_TTY_BUF_SIZE`
@@ -20,12 +20,29 @@ struct Cursor {
     canon_column: usize,
 }
 
+/// Whether output runs, or which flow control holds it
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(
+    feature = "rkyv",
+    derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
+)]
+enum Flow {
+    /// Output and echo go out as they are produced
+    #[default]
+    Running,
+    /// The `VSTOP` character holds output until `VSTART`, `IXANY`, a signal, a dropped `IXON` or `TCOON`
+    Xoff,
+    /// `TCOOFF` holds output until `TCOON`
+    Tcooff,
+}
+
 /// One pty's line discipline: the termios, the line under edit, the held echo and the cursor
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[cfg_attr(
     feature = "rkyv",
     derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)
 )]
+#[non_exhaustive]
 pub struct State {
     termios: Termios,
     line: Vec<u8>,
@@ -33,7 +50,7 @@ pub struct State {
     cursor: Cursor,
     erasing: bool,
     lnext: bool,
-    stopped: bool,
+    flow: Flow,
 }
 
 impl State {
@@ -50,7 +67,7 @@ impl State {
             },
             erasing: false,
             lnext: false,
-            stopped: false,
+            flow: Flow::Running,
         }
     }
 
@@ -60,28 +77,70 @@ impl State {
         &self.termios
     }
 
-    /// Installs a termios and returns the line a switch out of canonical mode releases to the program
+    /// Installs a termios and returns the line and the echo the change releases
     #[must_use]
-    pub fn set_termios(&mut self, termios: Termios) -> Vec<u8> {
+    pub fn set_termios(&mut self, termios: Termios) -> TermiosResult {
+        let mut out = TermiosResult {
+            to_master: Vec::new(),
+            to_replica: Vec::new(),
+        };
         let mode = Termios::ICANON | Termios::EXTPROC;
         let mode_changed = (self.termios.local_flags ^ termios.local_flags) & mode != 0;
         let ixon_dropped = self.iflag(Termios::IXON) && termios.input_flags & Termios::IXON == 0;
         self.termios = termios;
         if ixon_dropped {
-            self.stopped = false;
+            self.start();
+            echo::commit(self, &mut out.to_master);
         }
-        if !mode_changed {
-            return Vec::new();
+        if mode_changed {
+            self.erasing = false;
+            self.lnext = false;
+            out.to_replica = std::mem::take(&mut self.line);
         }
-        self.erasing = false;
-        self.lnext = false;
-        std::mem::take(&mut self.line)
+        out
     }
 
     /// Drops the line under edit, the `TCIFLUSH` half of `tcflush`
     pub fn flush_input(&mut self) {
         self.line.clear();
         self.erasing = false;
+    }
+
+    /// Holds output and echo until `start_output`, the `TCOOFF` half of `tcflow`
+    pub const fn stop_output(&mut self) {
+        self.flow = Flow::Tcooff;
+    }
+
+    /// Releases what `stop_output` held, the `TCOON` half of `tcflow`
+    pub const fn start_output(&mut self) {
+        if matches!(self.flow, Flow::Tcooff) {
+            self.flow = Flow::Running;
+        }
+    }
+
+    /// Whether `VSTOP` or `stop_output` holds output, so `output` consumes nothing
+    #[must_use]
+    pub const fn is_output_stopped(&self) -> bool {
+        !matches!(self.flow, Flow::Running)
+    }
+
+    /// `stop_tty`: `VSTOP` holds output unless something already does
+    const fn stop(&mut self) {
+        if matches!(self.flow, Flow::Running) {
+            self.flow = Flow::Xoff;
+        }
+    }
+
+    /// `start_tty`: releases output that `VSTOP` holds, never what `TCOOFF` holds
+    const fn start(&mut self) {
+        if matches!(self.flow, Flow::Xoff) {
+            self.flow = Flow::Running;
+        }
+    }
+
+    /// Whether `VSTOP` holds output and a restart may release it
+    const fn is_xoff(&self) -> bool {
+        matches!(self.flow, Flow::Xoff)
     }
 
     /// Takes bytes the terminal typed and returns the echo, the completed input and the signal
