@@ -7,8 +7,8 @@ use crate::termios::Termios;
 pub enum Outcome {
     /// The byte edited or ended the line
     Handled,
-    /// The byte was an end of file on an empty line
-    Eof,
+    /// The byte was an end of file on an empty line, which ends the call
+    Ended,
     /// The byte is ordinary input
     Plain,
 }
@@ -53,7 +53,8 @@ fn line_end(state: &mut State, c: u8, out: &mut InputResult) -> Outcome {
         complete(state, Some(b'\n'), out);
     } else if c == state.cc(Termios::VEOF) {
         if state.line.is_empty() {
-            return Outcome::Eof;
+            out.eof = true;
+            return Outcome::Ended;
         }
         complete(state, None, out);
     } else if c == state.cc(Termios::VEOL) || (iexten && c == state.cc(Termios::VEOL2)) {

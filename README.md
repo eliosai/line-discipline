@@ -33,7 +33,7 @@ assert_eq!(shown.to_master, b"file.txt\r\n");
 
 `State::default()` carries the termios a fresh pty replica reports: canonical mode, echo with
 `ECHOE` and `ECHOCTL`, `ICRNL` on input and `ONLCR` on output. `input` takes what the master wrote
-and returns the echo for the master, the completed input for the replica and the signals for the
+and returns the echo for the master, the completed input for the replica and the signal for the
 foreground process group. `output` takes what the replica wrote and returns it post-processed for
 the master.
 
@@ -45,9 +45,10 @@ use line_discipline::{Signal, State};
 let mut state = State::default();
 
 let interrupted = state.input(b"ab\x03cd\n");
-assert_eq!(interrupted.signals, [Signal::Interrupt]);
-assert_eq!(interrupted.to_replica, b"cd\n");
-assert_eq!(interrupted.to_master, b"^Ccd\r\n");
+assert_eq!(interrupted.signal, Some(Signal::Interrupt));
+assert_eq!(interrupted.consumed, 3);
+assert_eq!(interrupted.to_master, b"^C");
+assert_eq!(state.input(b"cd\n").to_replica, b"cd\n");
 
 let typed = b"\x04echo\n";
 let ended = state.input(typed);
@@ -57,11 +58,12 @@ let rest = state.input(&typed[ended.consumed..]);
 assert_eq!(rest.to_replica, b"echo\n");
 ```
 
-A signal character drops the line under edit and the echo and lines the same call produced, the
-way the kernel's `isig` flushes both queues unless `NOFLSH` is set, and the signal goes in
-`signals` for the caller to deliver. An end of file on an empty line ends the call: `eof` is set,
-`consumed` says how many bytes the call took, and the caller feeds the rest once the reader has
-seen the end of file, so the order the kernel keeps in its buffer survives.
+A signal character ends the call: the signal goes in `signal`, `consumed` stops after the
+character, and the caller hands over `to_replica`, delivers the signal, and feeds the rest, so the
+program sees them in the kernel's order. Unless `NOFLSH` is set the character also drops the line
+under edit and the echo and lines the same call produced, the way the kernel's `isig` flushes
+both queues. An end of file on an empty line ends the call the same way with `eof` set, and the
+caller feeds the rest once the reader has seen the end of file.
 
 ## Flow control
 
