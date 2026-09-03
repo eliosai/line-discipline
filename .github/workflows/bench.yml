@@ -36,3 +36,23 @@ jobs:
         with:
           mode: simulation
           run: cargo codspeed run
+  bench-walltime:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    runs-on: codspeed-macro
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.97"
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-codspeed
+      - name: build the benches
+        run: cargo codspeed build
+      - name: run the benches on CodSpeed
+        uses: CodSpeedHQ/action@v5
+        with:
+          mode: walltime
+          run: cargo codspeed run
