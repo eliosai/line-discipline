@@ -63,6 +63,11 @@ package-check:
 audit:
     cargo deny check
 
+# Run the benches the way CodSpeed does, or plainly with `cargo bench`
+bench:
+    cargo codspeed build
+    cargo codspeed run
+
 # Record the kernel's behavior from a real pty into tests/kernel/cases.txt (Linux only)
 capture:
     python3 scripts/capture-cases.py
