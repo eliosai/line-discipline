@@ -4,12 +4,7 @@
 [![docs.rs](https://docs.rs/line-discipline/badge.svg)](https://docs.rs/line-discipline)
 [![MIT](https://img.shields.io/crates/l/line-discipline.svg)](https://github.com/eliosai/line-discipline/blob/main/LICENSE)
 
-line-discipline is the Linux `n_tty` line discipline as a library. One `State` turns the bytes a
-terminal types into the lines a program reads, and the bytes a program writes into what the
-terminal shows, with the rules the kernel applies on a pty: canonical editing, echo, signals, flow
-control and output post-processing. It makes no system calls and holds no file descriptor, so it
-runs a pty in user space, inside a shell, or under a test, and every rule is checked byte for byte
-against a real pty.
+line-discipline is the Linux `n_tty` line discipline as a library. One `State` turns the bytes typed into a terminal into lines a program reads, and the bytes a program writes into what the terminal shows, with the rules the kernel applies on a pty: canonical editing, echo, signals, flow control and output post-processing. It makes no system calls and holds no file descriptor, so it runs a pty in user space, or under a test, and every rule is checked byte for byte against a real pty.
 
 ```toml
 [dependencies]
@@ -109,35 +104,10 @@ echo a dropped `IXON` releases to the terminal, and `flush_input` is the `TCIFLU
 local flags and the control characters; the control flags, the speeds, `VMIN` and `VTIME` travel
 with the record for the caller, who owns the file descriptors, the process groups and the clock.
 
-## Checkpointing
+## Checkpointing the State
 
 The `rkyv` feature derives `rkyv::Archive`, `Serialize` and `Deserialize` for `State` and
 `Termios`, so a discipline in the middle of a line serializes and resumes.
-
-## Layout
-
-- `src/state` holds `State` and the `n_tty` rules, one file per path: `receive.rs` takes a byte
-  from the master, `canon.rs` edits the line, `echo.rs` writes the echo, `output.rs`
-  post-processes what the replica wrote
-- `src/termios` holds `Termios` and its constants, and `src/ctype.rs` the kernel's character
-  classes
-- `benches/discipline.rs` holds the benches the `bench` workflow measures on every pull request
-- `tests/kernel/cases.txt` is captured from a real pty by `scripts/capture-cases.py` and replayed
-  byte for byte
-- `docs/discipline.md` states each rule and what the caller owns, `docs/api.md` lists every
-  public item, `docs/releasing.md` the pipeline, `docs/todo.md` the open work
-
-## Building and testing
-
-```text
-just check          # comment, doc and layout scans, fmt, check, clippy -D warnings
-just test           # the suite under cargo nextest
-just test-doc       # every example in this README and the docs
-just doc-check      # the docs.rs build with warnings denied
-just semver-check   # the public API against the last release
-just bench          # the benches, the way the bench workflow runs them
-just ci             # all of it, the way the gate runs
-```
 
 ## License
 
