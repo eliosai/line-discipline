@@ -26,8 +26,8 @@ column. The caller holds what the kernel keeps outside the line discipline:
 Per byte, in order:
 
 1. In canonical mode a line holds at most 4096 bytes: at 4096 the newest byte is dropped before
-   the next one is taken, so the line keeps its first 4095 bytes and the newest, and a newline
-   replaces the newest.
+   the next one is taken and before each byte stored, so the line keeps its first 4095 bytes and
+   the newest, and a newline replaces the newest.
 2. `ISTRIP` clears the high bit, then `IUCLC` with `IEXTEN` lowercases with the kernel's Latin-1
    table.
 3. After `VLNEXT` the byte is ordinary input: echoed as `^X` when it is a control character, then
@@ -113,5 +113,6 @@ edit is released to the program as raw bytes, the way the kernel marks it readab
   of it.
 - The kernel's flush on a signal also drops the replica's unread output and the master's unread
   echo from earlier calls; the crate cannot retract what it already returned.
-- `PARMRK` triples the room the kernel reserves per byte; the crate has no room limit outside the
-  canonical line.
+- Under `PARMRK` the kernel reserves three bytes of room per byte received, so its line fills
+  sooner; the crate applies the same 4096 byte limit to every byte it stores, doubled or not, and
+  outside canonical mode the caller's queue is the only limit.
