@@ -172,7 +172,7 @@ fn accept(state: &mut State, c: u8, raw_newline: bool, out: &mut InputResult) {
 /// Adds a byte to the line under edit, or hands it to the program outside canonical mode
 fn queue(state: &mut State, c: u8, out: &mut InputResult) {
     if state.lflag(Termios::ICANON) && !state.lflag(Termios::EXTPROC) {
-        state.line.push(c);
+        state.push_line(c);
     } else {
         out.to_replica.push(c);
     }

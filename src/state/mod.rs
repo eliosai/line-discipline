@@ -123,6 +123,14 @@ impl State {
         self.termios.local_flags & flag != 0
     }
 
+    /// Adds a byte to the canonical line, dropping the newest byte first when the line is full
+    fn push_line(&mut self, c: u8) {
+        if self.line.len() >= LINE_MAX {
+            self.line.pop();
+        }
+        self.line.push(c);
+    }
+
     fn cc(&self, index: usize) -> u8 {
         self.termios
             .control_characters

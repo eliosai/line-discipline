@@ -71,7 +71,7 @@ fn end_of_line(state: &mut State, c: u8, out: &mut InputResult) {
         echo::visible(state, c);
     }
     if c == 0xff && state.iflag(Termios::PARMRK) {
-        state.line.push(c);
+        state.push_line(c);
     }
     complete(state, Some(c), out);
 }
