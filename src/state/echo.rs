@@ -6,13 +6,13 @@ use crate::termios::Termios;
 const START: u8 = 0xff;
 
 /// `ECHO_OP_ERASE_TAB`
-const ERASE_TAB: u8 = 0x80;
+const ERASE_TAB: u8 = 0x82;
 
 /// `ECHO_OP_SET_CANON_COL`
 const SET_CANON_COL: u8 = 0x81;
 
 /// `ECHO_OP_MOVE_BACK_COL`
-const MOVE_BACK_COL: u8 = 0x82;
+const MOVE_BACK_COL: u8 = 0x80;
 
 /// Bytes the kernel's echo buffer holds, its `N_TTY_BUF_SIZE`
 const BUF_SIZE: usize = 4096;
@@ -131,7 +131,7 @@ fn process(state: &mut State, to_master: &mut Vec<u8>) {
     state.echo_mark = state.echo_mark.saturating_sub(tail);
 }
 
-/// Writes out the byte or operation at `tail` and returns where the next one starts
+/// Writes out the byte at `tail` and returns where the next one starts
 fn render(state: &mut State, tail: usize, to_master: &mut Vec<u8>) -> usize {
     let c = state.echo.get(tail).copied().unwrap_or(0);
     if c != START {
@@ -142,6 +142,11 @@ fn render(state: &mut State, tail: usize, to_master: &mut Vec<u8>) -> usize {
         }
         return tail.saturating_add(1);
     }
+    render_op(state, tail, to_master)
+}
+
+/// Writes out the operation at `tail` and returns where the next one starts
+fn render_op(state: &mut State, tail: usize, to_master: &mut Vec<u8>) -> usize {
     let op = state.echo.get(tail.saturating_add(1)).copied().unwrap_or(0);
     match op {
         ERASE_TAB => {
