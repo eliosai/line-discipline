@@ -91,7 +91,10 @@ fn an_end_of_file_after_input_delivers_the_line_without_it() {
 fn leaving_canonical_mode_releases_the_pending_line() {
     let mut state = State::default();
     assert_eq!(state.input(b"ab").to_replica, b"");
-    assert_eq!(state.set_termios(without(Termios::ICANON)), b"ab");
+    assert_eq!(
+        state.set_termios(without(Termios::ICANON)).to_replica,
+        b"ab"
+    );
     assert_eq!(state.input(b"c").to_replica, b"c");
 }
 
@@ -99,7 +102,7 @@ fn leaving_canonical_mode_releases_the_pending_line() {
 fn a_termios_change_within_canonical_mode_keeps_the_pending_line() {
     let mut state = State::default();
     assert_eq!(state.input(b"ab").to_replica, b"");
-    assert_eq!(state.set_termios(without(Termios::ECHO)), b"");
+    assert_eq!(state.set_termios(without(Termios::ECHO)).to_replica, b"");
     assert_eq!(state.input(b"\n").to_replica, b"ab\n");
 }
 
@@ -123,6 +126,36 @@ fn stop_holds_output_and_echo_until_start() {
 }
 
 #[test]
+fn dropping_ixon_releases_the_held_echo_and_output() {
+    let mut state = State::default();
+    assert_eq!(state.input(b"\x13ab").to_master, b"");
+    let mut termios = Termios::default();
+    termios.input_flags &= !Termios::IXON;
+    let released = state.set_termios(termios);
+    assert_eq!(
+        (
+            released.to_master.as_slice(),
+            released.to_replica.as_slice()
+        ),
+        (&b"ab"[..], &b""[..])
+    );
+    assert_eq!(state.output(b"x").consumed, 1);
+}
+
+#[test]
+fn stop_output_holds_output_until_start_output() {
+    let mut state = State::default();
+    state.stop_output();
+    assert!(state.is_output_stopped());
+    assert_eq!(state.output(b"x").consumed, 0);
+    assert_eq!(state.input(b"\x11").to_master, b"");
+    assert!(state.is_output_stopped());
+    state.start_output();
+    assert!(!state.is_output_stopped());
+    assert_eq!(state.output(b"x").consumed, 1);
+}
+
+#[test]
 fn output_without_opost_passes_through() {
     let mut termios = Termios::default();
     termios.output_flags = 0;
@@ -134,7 +167,10 @@ fn output_without_opost_passes_through() {
 fn the_termios_accessor_returns_what_was_set() {
     let mut state = State::default();
     let raw = without(Termios::ICANON | Termios::ECHO | Termios::ISIG);
-    assert_eq!(state.set_termios(raw), b"");
+    assert_eq!(
+        state.set_termios(raw),
+        line_discipline::TermiosResult::default()
+    );
     assert_eq!(state.termios(), &raw);
 }
 

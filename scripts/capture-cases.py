@@ -106,6 +106,9 @@ def run(case, out):
         elif kind == "flush":
             termios.tcflush(replica, termios.TCIFLUSH)
             out.append("flush")
+        elif kind in ("tcoff", "tcon"):
+            termios.tcflow(replica, termios.TCOOFF if kind == "tcoff" else termios.TCOON)
+            out.append(kind)
         echoed = drain(master)
         out.append(f"master {echoed[0].hex()}")
         for index, segment in enumerate(drain(replica)):
@@ -230,6 +233,14 @@ CASES = [
     Case("switch_to_raw_releases_line", [m(b"ab"), ("set", Case("", [], lflag=flags(BASE_L, drop="ICANON")))]),
     Case("switch_to_canon_keeps", [m(b"ab"), ("set", Case("", [], lflag=BASE_L)), m(b"c\n")], lflag=flags(BASE_L, drop="ICANON")),
     Case("switch_ixon_off_restarts", [m(b"\x13"), ("set", Case("", [], iflag=flags(BASE_I, drop="IXON"))), r(b"x")]),
+    Case("switch_ixon_off_releases_echo", [m(b"\x13ab"), ("set", Case("", [], iflag=flags(BASE_I, drop="IXON")))]),
+    Case("tcflow_off_holds_output", [("tcoff",), r(b"x"), ("tcon",), r(b"y")]),
+    Case("tcflow_off_ignores_vstart", [("tcoff",), m(b"\x11"), r(b"x"), ("tcon",), r(b"y")]),
+    Case("tcflow_off_ignores_ixany", [("tcoff",), m(b"a"), r(b"x")], iflag=flags(BASE_I, "IXANY")),
+    Case("tcflow_off_ignores_ixon_drop", [("tcoff",), ("set", Case("", [], iflag=flags(BASE_I, drop="IXON"))), r(b"x")]),
+    Case("tcflow_on_releases_vstop", [m(b"\x13"), ("tcoff",), ("tcon",), r(b"x")]),
+    Case("tcflow_off_echo_waits", [("tcoff",), m(b"ab"), ("tcon",), m(b"c")]),
+    Case("tcflow_off_intr_keeps_stopped", [("tcoff",), m(b"\x03"), r(b"x")]),
     Case("switch_resets_lnext", [m(b"\x16"), ("set", Case("", [], lflag=flags(BASE_L, drop="ICANON"))), m(b"\x03")]),
     Case("switch_same_keeps_line", [m(b"ab"), ("set", Case("", [], lflag=BASE_L)), m(b"\n")]),
     Case("flush_input", [m(b"ab"), ("flush",), m(b"\n")]),

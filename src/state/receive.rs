@@ -112,22 +112,22 @@ fn flow_control(state: &mut State, c: u8, out: &mut InputResult) -> bool {
     if c == state.cc(Termios::VSTART) {
         start(state, out);
     } else if c == state.cc(Termios::VSTOP) {
-        state.stopped = true;
+        state.stop();
     } else {
         return false;
     }
     true
 }
 
-/// Releases output and the echo it held back
+/// Releases output and the echo it held back, unless `stop_output` holds them
 fn start(state: &mut State, out: &mut InputResult) {
-    state.stopped = false;
+    state.start();
     echo::commit(state, &mut out.to_master);
 }
 
-/// Under `IXANY` any byte releases held output
+/// Under `IXANY` any byte releases output that `VSTOP` holds
 fn restart_on_any(state: &mut State, out: &mut InputResult) {
-    if state.stopped && state.iflag(Termios::IXON) && state.iflag(Termios::IXANY) {
+    if state.is_xoff() && state.iflag(Termios::IXON) && state.iflag(Termios::IXANY) {
         start(state, out);
     }
 }
@@ -143,7 +143,7 @@ fn raise(state: &mut State, signal: Signal, c: u8, out: &mut InputResult) {
         out.to_replica.clear();
     }
     if state.iflag(Termios::IXON) {
-        state.stopped = false;
+        state.start();
     }
     if state.lflag(Termios::ECHO) {
         echo::visible(state, c);

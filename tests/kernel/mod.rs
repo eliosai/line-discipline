@@ -30,6 +30,8 @@ enum Action {
     WriteReplica(Vec<u8>, Option<usize>),
     SetTermios(Termios),
     Flush,
+    StopOutput,
+    StartOutput,
 }
 
 #[test]
@@ -77,9 +79,15 @@ fn perform(state: &mut State, step: &Step, at: &str) -> (Vec<u8>, Vec<Vec<u8>>) 
         }
         Action::SetTermios(termios) => {
             let released = state.set_termios(*termios);
-            replica.first_mut().expect("one segment").extend(released);
+            master.extend(released.to_master);
+            replica
+                .first_mut()
+                .expect("one segment")
+                .extend(released.to_replica);
         }
         Action::Flush => state.flush_input(),
+        Action::StopOutput => state.stop_output(),
+        Action::StartOutput => state.start_output(),
     }
     (master, replica)
 }
@@ -135,6 +143,8 @@ fn parse_line(case: &mut Case, word: &str, rest: &str) {
         "write" => push_write(case, rest),
         "written" => set_written(case, rest.parse().expect("a count")),
         "flush" => push_step(case, Action::Flush),
+        "tcoff" => push_step(case, Action::StopOutput),
+        "tcon" => push_step(case, Action::StartOutput),
         "master" => last_step(case).master = hex(rest),
         "replica" => last_step(case).replica.push(hex(rest)),
         "eof" => {}

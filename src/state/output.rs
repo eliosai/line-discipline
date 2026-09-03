@@ -15,7 +15,7 @@ pub fn write(state: &mut State, bytes: &[u8]) -> OutputResult {
         to_master: Vec::new(),
     };
     echo::commit(state, &mut out.to_master);
-    if state.stopped {
+    if state.is_output_stopped() {
         return out;
     }
     if state.oflag(Termios::OPOST) {

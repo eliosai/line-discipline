@@ -72,14 +72,14 @@ pub fn erase_tab(state: &mut State, columns: usize, after_tab: bool) {
 
 /// Hands the echo to the terminal unless `VSTOP` holds output
 pub fn commit(state: &mut State, to_master: &mut Vec<u8>) {
-    if !state.stopped {
+    if !state.is_output_stopped() {
         to_master.append(&mut state.echo);
     }
 }
 
 /// Drops the oldest held echo down to the watermark once more than the kernel's buffer waits
 pub fn trim(state: &mut State) {
-    if state.stopped && state.echo.len() > ECHO_MAX {
+    if state.is_output_stopped() && state.echo.len() > ECHO_MAX {
         let excess = state.echo.len().saturating_sub(DISCARD_WATERMARK);
         state.echo.drain(..excess);
     }
