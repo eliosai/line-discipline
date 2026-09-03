@@ -8,6 +8,12 @@ const ESCAPE: u8 = 0xff;
 /// Columns between tab stops
 const TAB: usize = 8;
 
+/// Bytes the kernel's echo buffer holds, its `N_TTY_BUF_SIZE`
+const ECHO_MAX: usize = 4096;
+
+/// Bytes the kernel keeps when it discards held echo, its `ECHO_DISCARD_WATERMARK`
+const DISCARD_WATERMARK: usize = ECHO_MAX - (256 + 32);
+
 /// `echo_char`: a control character shows as `^X` under `ECHOCTL`, a tab and everything else as is
 pub fn visible(state: &mut State, c: u8) {
     if c != ESCAPE && state.lflag(Termios::ECHOCTL) && ctype::is_cntrl(c) && c != b'\t' {
@@ -68,5 +74,13 @@ pub fn erase_tab(state: &mut State, columns: usize, after_tab: bool) {
 pub fn commit(state: &mut State, to_master: &mut Vec<u8>) {
     if !state.stopped {
         to_master.append(&mut state.echo);
+    }
+}
+
+/// Drops the oldest held echo down to the watermark once more than the kernel's buffer waits
+pub fn trim(state: &mut State) {
+    if state.stopped && state.echo.len() > ECHO_MAX {
+        let excess = state.echo.len().saturating_sub(DISCARD_WATERMARK);
+        state.echo.drain(..excess);
     }
 }

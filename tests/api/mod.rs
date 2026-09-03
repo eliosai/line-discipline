@@ -163,3 +163,17 @@ fn a_parmrk_flood_keeps_the_line_within_the_kernel_buffer() {
     assert_eq!(line.len(), 4096);
     assert_eq!((line.first(), line.last()), (Some(&0xff), Some(&b'\n')));
 }
+
+#[test]
+fn held_echo_drops_its_oldest_bytes_past_the_kernel_watermark() {
+    let mut state = State::default();
+    assert_eq!(state.input(b"\x13").to_master, b"");
+    assert_eq!(state.input(&[b'a'; 4096]).to_master, b"");
+    assert_eq!(state.input(b"b").to_master, b"");
+    let released = state.input(b"\x11").to_master;
+    assert_eq!(released.len(), 3808);
+    assert_eq!(
+        (released.first(), released.last()),
+        (Some(&b'a'), Some(&b'b'))
+    );
+}
