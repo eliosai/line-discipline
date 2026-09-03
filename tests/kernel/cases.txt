@@ -8,7 +8,7 @@ case canon_partial_then_newline
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 6c73
 master 6c73
-replica 
+replica
 write master 0a
 master 0d0a
 replica 6c730a
@@ -36,7 +36,7 @@ case canon_inlcr
 termios 2500 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 610a
 master 615e4d
-replica 
+replica
 write master 0d
 master 0d0a
 replica 610d0a
@@ -99,7 +99,7 @@ case erase_tab_canon_column
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 2420
 master 2420
-replica 
+replica
 write master 09787f7f0a
 master 09780820080808080808080d0a
 replica 0a
@@ -107,7 +107,7 @@ case erase_tab_xtabs
 termios 2400 14005 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 616263
 master 616263
-replica 
+replica
 write master 097f0a
 master 202020202008080808080d0a
 replica 0a
@@ -154,7 +154,7 @@ replica 0a
 case kill_no_echo
 termios 2400 5 3600277 105063 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 61626315780a
-master 
+master
 replica 780a
 case reprint
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
@@ -169,7 +169,7 @@ replica 61010a
 case reprint_no_echo
 termios 2400 5 3600277 105063 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 6162120a
-master 
+master
 replica 6162120a
 case lnext
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
@@ -189,36 +189,36 @@ replica 030a
 case eof_empty
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 04
-master 
-replica 
+master
+replica
 eof
-replica 
+replica
 case eof_after_data
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 686904
 master 6869
 replica 6869
 write master 04
-master 
-replica 
+master
+replica
 eof
-replica 
+replica
 case eof_then_line
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 0461620a
 master 61620d0a
-replica 
+replica
 eof
 replica 61620a
 case eof_twice
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 0404
-master 
-replica 
+master
+replica
 eof
-replica 
+replica
 eof
-replica 
+replica
 case eol
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 23 12 0f 17 16 00 00 00
 write master 616223630a
@@ -247,7 +247,7 @@ replica 61620a
 case no_echo
 termios 2400 5 3600277 105063 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 61627f0a
-master 
+master
 replica 610a
 case echoprt
 termios 2400 5 3600277 107073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
@@ -298,11 +298,11 @@ case signal_flushes_completed_line
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 6c730a03
 master 5e43
-replica 
+replica
 case signal_no_echo
 termios 2400 5 3600277 105063 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 6103620a
-master 
+master
 replica 620a
 case signal_after_erasing
 termios 2400 5 3600277 107073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
@@ -313,39 +313,39 @@ case signal_separate_writes
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 6162
 master 6162
-replica 
+replica
 write master 03
 master 5e43
-replica 
+replica
 write master 0a
 master 0d0a
 replica 0a
 case flow_stop_start
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 13
-master 
-replica 
+master
+replica
 write replica 68656c6c6f0a
 written 0
-master 
-replica 
+master
+replica
 write master 11
-master 
-replica 
+master
+replica
 write replica 68656c6c6f0a
 master 68656c6c6f0d0a
-replica 
+replica
 case flow_ixany
 termios 6400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 13
-master 
-replica 
+master
+replica
 write master 78
 master 78
-replica 
+replica
 write replica 79
 master 79
-replica 
+replica
 case flow_no_ixon
 termios 400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 13110a
@@ -354,22 +354,22 @@ replica 13110a
 case flow_echo_held
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 136162
-master 
-replica 
+master
+replica
 write master 11
 master 6162
-replica 
+replica
 case flow_intr_restarts
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 13
-master 
-replica 
+master
+replica
 write master 03
 master 5e43
-replica 
+replica
 write replica 78
 master 78
-replica 
+replica
 case flow_lnext_literal
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 16130a
@@ -377,7 +377,7 @@ master 5e085e530d0a
 replica 130a
 write replica 78
 master 78
-replica 
+replica
 case istrip
 termios 2440 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master e10a
@@ -401,12 +401,12 @@ replica ffff0a
 case extproc
 termios 2400 5 3600277 305073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 61620a
-master 
+master
 replica 61620a
 case raw
 termios 0 0 3600277 0 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 6162037f0a
-master 
+master
 replica 6162037f0a
 case noncanon_echo
 termios 2400 5 3600277 105071 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
@@ -452,87 +452,87 @@ case out_onlcr
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 610a62
 master 610d0a62
-replica 
+replica
 case out_no_opost
 termios 2400 0 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 610a6209
 master 610a6209
-replica 
+replica
 case out_ocrnl
 termios 2400 15 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 610d
 master 610a
-replica 
+replica
 case out_onocr
 termios 2400 25 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 0d0d610d
 master 610d
-replica 
+replica
 case out_onlret
 termios 2400 61 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 610a0d
 master 610a
-replica 
+replica
 case out_xtabs
 termios 2400 14005 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 61620963
 master 616220202020202063
-replica 
+replica
 case out_tab_after_cr
 termios 2400 14005 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 6162630d09
 master 6162630d2020202020202020
-replica 
+replica
 case out_tab_after_nl
 termios 2400 14005 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 6162630a09
 master 6162630d0a2020202020202020
-replica 
+replica
 case out_tab_after_nl_no_onlcr
 termios 2400 14001 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 6162630a09
 master 6162630a2020202020
-replica 
+replica
 case out_olcuc
 termios 2400 7 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
-write replica 616263e9f70a
-master 414243c9f70d0a
-replica 
+write replica 616263e9f7df0a
+master 414243c9f7bf0d0a
+replica
 case out_backspace
 termios 2400 14005 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 6162630809
 master 61626308202020202020
-replica 
+replica
 case out_utf8_column
 termios 42400 14005 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica c3a909
 master c3a920202020202020
-replica 
+replica
 case out_utf8_off_column
 termios 2400 14005 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica c3a909
 master c3a9202020202020
-replica 
+replica
 case out_ctrl_column
 termios 2400 14005 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 610109
 master 610120202020202020
-replica 
+replica
 case out_ocrnl_onlret
 termios 2400 14055 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 61620d09
 master 61620a2020202020202020
-replica 
+replica
 case out_ocrnl_no_onlret
 termios 2400 14015 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 61620d09
 master 61620a202020202020
-replica 
+replica
 case echo_column_interplay
 termios 2400 14005 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 616263
 master 616263
-replica 
+replica
 write master 097f0a
 master 202020202008080808080d0a
 replica 0a
@@ -545,9 +545,9 @@ case switch_to_raw_releases_line
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 6162
 master 6162
-replica 
+replica
 termios 2400 5 3600277 105071 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
-master 
+master
 replica 6162
 case switch_to_canon_keeps
 termios 2400 5 3600277 105071 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
@@ -555,41 +555,41 @@ write master 6162
 master 6162
 replica 6162
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
-master 
-replica 
+master
+replica
 write master 630a
 master 630d0a
 replica 630a
 case switch_ixon_off_restarts
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 13
-master 
-replica 
+master
+replica
 termios 400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
-master 
-replica 
+master
+replica
 write replica 78
 master 78
-replica 
+replica
 case switch_resets_lnext
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 16
 master 5e08
-replica 
+replica
 termios 2400 5 3600277 105071 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
-master 
-replica 
+master
+replica
 write master 03
 master 5e43
-replica 
+replica
 case switch_same_keeps_line
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 6162
 master 6162
-replica 
+replica
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
-master 
-replica 
+master
+replica
 write master 0a
 master 0d0a
 replica 61620a
@@ -597,10 +597,10 @@ case flush_input
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 6162
 master 6162
-replica 
+replica
 flush
-master 
-replica 
+master
+replica
 write master 0a
 master 0d0a
 replica 0a
@@ -608,10 +608,10 @@ case flush_resets_erasing
 termios 2400 5 3600277 107073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 61627f
 master 61625c62
-replica 
+replica
 flush
-master 
-replica 
+master
+replica
 write master 630a
 master 630d0a
 replica 630a
@@ -623,11 +623,11 @@ replica 610a630a
 case flow_echo_before_stop
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 61621363
-master 
-replica 
+master
+replica
 write master 11
 master 616263
-replica 
+replica
 case istrip_makes_a_signal
 termios 2440 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 6183620a
@@ -637,14 +637,14 @@ case switch_extproc_releases_line
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 6162
 master 6162
-replica 
+replica
 termios 2400 5 3600277 305073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
-master 
+master
 replica 6162
 case noncanon_echonl
 termios 2400 5 3600277 105161 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 610a
-master 
+master
 replica 610a
 case canon_echonl_icrnl
 termios 2400 5 3600277 105163 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
@@ -675,7 +675,7 @@ case signal_stopped_noflsh
 termios 2400 5 3600277 105273 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 13616203
 master 61625e43
-replica 
+replica
 case iuclc_lnext
 termios 3400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 16410a
@@ -697,7 +697,7 @@ case signals_in_a_row
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 031c1a
 master 5e5a
-replica 
+replica
 case parmrk_eol
 termios 2410 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a ff 12 0f 17 16 00 00 00
 write master 61ff
@@ -707,7 +707,7 @@ case out_no_opost_no_column
 termios 2400 0 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write replica 6162
 master 6162
-replica 
+replica
 write master 097f0a
 master 0908080808080808080a
 replica 0a

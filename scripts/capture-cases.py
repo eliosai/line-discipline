@@ -218,7 +218,7 @@ CASES = [
     Case("out_tab_after_cr", [r(b"abc\r\t")], oflag=flags(BASE_O, "XTABS")),
     Case("out_tab_after_nl", [r(b"abc\n\t")], oflag=flags(BASE_O, "XTABS")),
     Case("out_tab_after_nl_no_onlcr", [r(b"abc\n\t")], oflag=flags(BASE_O, "XTABS", drop="ONLCR")),
-    Case("out_olcuc", [r(b"abc\xe9\xf7\n")], oflag=flags(BASE_O, "OLCUC")),
+    Case("out_olcuc", [r(b"abc\xe9\xf7\xdf\n")], oflag=flags(BASE_O, "OLCUC")),
     Case("out_backspace", [r(b"abc\b\t")], oflag=flags(BASE_O, "XTABS")),
     Case("out_utf8_column", [r(b"\xc3\xa9\t")], iflag=flags(BASE_I, "IUTF8"), oflag=flags(BASE_O, "XTABS")),
     Case("out_utf8_off_column", [r(b"\xc3\xa9\t")], oflag=flags(BASE_O, "XTABS")),
