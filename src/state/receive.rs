@@ -9,17 +9,21 @@ pub fn byte(state: &mut State, byte: u8, out: &mut InputResult) -> bool {
         state.line.pop();
     }
     let c = preprocess(state, byte);
-    if state.lnext {
+    let eof = if state.lnext {
         state.lnext = false;
         plain(state, c, out);
+        false
     } else if state.lflag(Termios::EXTPROC) {
         queue(state, c, out);
+        false
     } else if is_special(state, c) {
-        return special(state, c, out);
+        special(state, c, out)
     } else {
         plain(state, c, out);
-    }
-    false
+        false
+    };
+    echo::trim(state);
+    eof
 }
 
 /// `ISTRIP` and `IUCLC`, applied before any other rule
