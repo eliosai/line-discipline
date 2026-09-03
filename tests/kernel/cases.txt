@@ -695,7 +695,13 @@ eof
 replica 620a
 case signals_in_a_row
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
-write master 031c1a
+write master 03
+master 5e43
+replica
+write master 1c
+master 5e5c
+replica
+write master 1a
 master 5e5a
 replica
 case parmrk_eol

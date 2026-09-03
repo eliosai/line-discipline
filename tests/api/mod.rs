@@ -15,18 +15,28 @@ fn a_canonical_line_reaches_the_program_with_its_echo() {
     assert_eq!((result.consumed, result.eof), (3, false));
     assert_eq!(result.to_replica, b"ls\n");
     assert_eq!(result.to_master, b"ls\r\n");
-    assert_eq!(result.signals, []);
+    assert_eq!(result.signal, None);
 }
 
 #[test]
-fn each_signal_character_names_its_signal() {
+fn each_signal_character_names_its_signal_and_ends_the_call() {
     let mut state = State::default();
-    let result = state.input(b"\x03\x1c\x1a");
+    let typed = b"\x03\x1c\x1a";
+    let mut rest: &[u8] = typed;
+    let mut signals = Vec::new();
+    while !rest.is_empty() {
+        let result = state.input(rest);
+        signals.push((result.signal, result.consumed, result.to_master));
+        rest = rest.get(result.consumed..).unwrap_or(&[]);
+    }
     assert_eq!(
-        result.signals,
-        [Signal::Interrupt, Signal::Quit, Signal::Suspend]
+        signals,
+        [
+            (Some(Signal::Interrupt), 1, b"^C".to_vec()),
+            (Some(Signal::Quit), 1, b"^\\".to_vec()),
+            (Some(Signal::Suspend), 1, b"^Z".to_vec()),
+        ]
     );
-    assert_eq!(result.to_master, b"^Z");
 }
 
 #[test]
@@ -34,18 +44,28 @@ fn a_signal_flushes_the_line_and_the_echo_unless_noflsh() {
     let mut state = State::default();
     let flushed = state.input(b"ab\x03c\n");
     assert_eq!(
-        (flushed.to_replica.as_slice(), flushed.to_master.as_slice()),
-        (&b"c\n"[..], &b"^Cc\r\n"[..])
+        (
+            flushed.consumed,
+            flushed.to_replica.as_slice(),
+            flushed.to_master.as_slice()
+        ),
+        (3, &b""[..], &b"^C"[..])
     );
+    assert_eq!(state.input(b"c\n").to_replica, b"c\n");
 
     let mut termios = Termios::default();
     termios.local_flags |= Termios::NOFLSH;
     let mut state = State::new(termios);
     let kept = state.input(b"ab\x03c\n");
     assert_eq!(
-        (kept.to_replica.as_slice(), kept.to_master.as_slice()),
-        (&b"abc\n"[..], &b"ab^Cc\r\n"[..])
+        (
+            kept.consumed,
+            kept.to_replica.as_slice(),
+            kept.to_master.as_slice()
+        ),
+        (3, &b""[..], &b"ab^C"[..])
     );
+    assert_eq!(state.input(b"c\n").to_replica, b"abc\n");
 }
 
 #[test]

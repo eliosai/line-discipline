@@ -37,10 +37,10 @@ values, the `c_cflag` bits `CBAUD` through `CRTSCTS` with every `B*` rate and `I
 ## `InputResult`
 
 `consumed` (bytes the call took), `to_master` (the echo), `to_replica` (completed input), `eof`
-(the program reads end of file once `to_replica` is drained) and `signals` (`Vec<Signal>`, in
-order). The call takes every byte offered unless an end of file on an empty line ends it, and
-then `consumed` stops after the `VEOF` byte. The struct is `#[non_exhaustive]` and `Debug`,
-`Clone`, `PartialEq`, `Eq` and `Default`.
+(the program reads end of file once `to_replica` is drained) and `signal` (`Option<Signal>`, the
+signal to deliver once `to_replica` is drained). The call takes every byte offered unless an end
+of file on an empty line or a signal character ends it, and then `consumed` stops after that
+byte. The struct is `#[non_exhaustive]` and `Debug`, `Clone`, `PartialEq`, `Eq` and `Default`.
 
 ## `OutputResult`
 

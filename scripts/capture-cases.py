@@ -248,7 +248,7 @@ CASES = [
     Case("iuclc_lnext", [m(b"\x16A\n")], iflag=flags(BASE_I, "IUCLC")),
     Case("erase_after_eof", [m(b"ab\x04\x7f\n")]),
     Case("two_eof_lines", [m(b"a\x04\x04b\n")]),
-    Case("signals_in_a_row", [m(b"\x03\x1c\x1a")]),
+    Case("signals_in_a_row", [m(b"\x03"), m(b"\x1c"), m(b"\x1a")]),
     Case("parmrk_eol", [m(b"a\xff")], iflag=flags(BASE_I, "PARMRK"), cc={V["VEOL"]: 0xFF}),
     Case("out_no_opost_no_column", [r(b"ab"), m(b"\t\x7f\n")], oflag=0),
     Case("echo_escape_column_no_opost", [m(b"\xff\n\t\x7f\n")], oflag=0),

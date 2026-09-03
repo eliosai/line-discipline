@@ -3,7 +3,7 @@ use crate::ctype;
 use crate::result::{InputResult, Signal};
 use crate::termios::Termios;
 
-/// Takes one byte the terminal typed, true when it is an end of file on an empty line
+/// Takes one byte the terminal typed, true when an end of file or a signal ends the call
 pub fn byte(state: &mut State, byte: u8, out: &mut InputResult) -> bool {
     if state.lflag(Termios::ICANON) && state.line.len() >= LINE_MAX {
         state.line.pop();
@@ -87,7 +87,7 @@ fn special(state: &mut State, c: u8, out: &mut InputResult) -> bool {
     }
     if let Some(signal) = signal_for(state, c).filter(|_| state.lflag(Termios::ISIG)) {
         raise(state, signal, c, out);
-        return false;
+        return true;
     }
     restart_on_any(state, out);
     let c = match c {
@@ -99,7 +99,7 @@ fn special(state: &mut State, c: u8, out: &mut InputResult) -> bool {
     if state.lflag(Termios::ICANON) {
         match canon::receive(state, c, out) {
             canon::Outcome::Handled => return false,
-            canon::Outcome::Eof => return true,
+            canon::Outcome::Ended => return true,
             canon::Outcome::Plain => {}
         }
     }
@@ -134,7 +134,7 @@ fn restart_on_any(state: &mut State, out: &mut InputResult) {
 
 /// `isig`: the signal, the flush unless `NOFLSH`, the release under `IXON`, then the echo
 fn raise(state: &mut State, signal: Signal, c: u8, out: &mut InputResult) {
-    out.signals.push(signal);
+    out.signal = Some(signal);
     if !state.lflag(Termios::NOFLSH) {
         state.line.clear();
         state.echo.clear();

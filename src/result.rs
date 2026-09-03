@@ -14,7 +14,7 @@ pub enum Signal {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub struct InputResult {
-    /// Bytes the call took, fewer than offered when an end of file ended it
+    /// Bytes the call took, fewer than offered when an end of file or a signal ended it
     pub consumed: usize,
     /// Echo for the terminal
     pub to_master: Vec<u8>,
@@ -22,8 +22,8 @@ pub struct InputResult {
     pub to_replica: Vec<u8>,
     /// Whether the program reads end of file once `to_replica` is drained
     pub eof: bool,
-    /// Signals for the foreground process group, in order
-    pub signals: Vec<Signal>,
+    /// The signal for the foreground process group that ended the call
+    pub signal: Option<Signal>,
 }
 
 /// What one [`State::output`](crate::State::output) call produced
