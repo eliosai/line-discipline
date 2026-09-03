@@ -64,9 +64,9 @@ audit:
     cargo deny check
 
 # Run the benches the way CodSpeed does, or plainly with `cargo bench`
-bench:
-    cargo codspeed build
-    cargo codspeed run
+bench mode="simulation":
+    cargo codspeed build -m {{mode}}
+    cargo codspeed run -m {{mode}}
 
 # Record the kernel's behavior from a real pty into tests/kernel/cases.txt (Linux only)
 capture:
