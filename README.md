@@ -13,7 +13,7 @@ against a real pty.
 
 ```toml
 [dependencies]
-line-discipline = "1"
+line-discipline = "2"
 ```
 
 ## A line from keystrokes
@@ -40,30 +40,28 @@ the master.
 ## Signals and end of file
 
 ```rust
-use line_discipline::{Signal, State};
+use line_discipline::{Event, Signal, State};
 
 let mut state = State::default();
 
 let interrupted = state.input(b"ab\x03cd\n");
-assert_eq!(interrupted.signal, Some(Signal::Interrupt));
-assert_eq!(interrupted.consumed, 3);
-assert_eq!(interrupted.to_master, b"^C");
-assert_eq!(state.input(b"cd\n").to_replica, b"cd\n");
+assert_eq!(interrupted.to_replica, b"cd\n");
+assert_eq!(interrupted.to_master, b"^Ccd\r\n");
+assert_eq!(
+    interrupted.events,
+    [Event::Signal { at: 0, signal: Signal::Interrupt }]
+);
 
-let typed = b"\x04echo\n";
-let ended = state.input(typed);
-assert!(ended.eof);
-assert_eq!(ended.consumed, 1);
-let rest = state.input(&typed[ended.consumed..]);
-assert_eq!(rest.to_replica, b"echo\n");
+let ended = state.input(b"\x04echo\n");
+assert_eq!(ended.to_replica, b"echo\n");
+assert_eq!(ended.events, [Event::Eof { at: 0 }]);
 ```
 
-A signal character ends the call: the signal goes in `signal`, `consumed` stops after the
-character, and the caller hands over `to_replica`, delivers the signal, and feeds the rest, so the
-program sees them in the kernel's order. Unless `NOFLSH` is set the character also drops the line
-under edit and the echo and lines the same call produced, the way the kernel's `isig` flushes
-both queues. An end of file on an empty line ends the call the same way with `eof` set, and the
-caller feeds the rest once the reader has seen the end of file.
+`events` carries what the program sees between bytes. Each one names the offset in `to_replica`
+it falls at, so the caller writes the bytes before it, delivers the signal or lets the reader see
+end of file, and writes the rest. Unless `NOFLSH` is set a signal character also drops the line
+under edit, the echo waiting to go out, and the lines the same call had already completed, the
+way the kernel's `isig` flushes both queues.
 
 ## Flow control
 

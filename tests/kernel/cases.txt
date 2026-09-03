@@ -746,6 +746,36 @@ replica
 termios 2400 5 3600277 305073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 master
 replica 6162
+case extproc_eof_alone
+termios 2400 5 3600277 305073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+write master 04
+master
+replica
+eof
+replica
+case extproc_eof_after_data
+termios 2400 5 3600277 305073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+write master 6162
+master
+replica 6162
+write master 04
+master
+replica
+eof
+replica
+write master 63
+master
+replica 63
+case extproc_eof_within_a_write
+termios 2400 5 3600277 305073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+write master 61620463
+master
+replica 61620463
+case extproc_eof_no_icanon
+termios 2400 5 3600277 305071 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
+write master 04
+master
+replica 04
 case noncanon_echonl
 termios 2400 5 3600277 105161 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
 write master 610a
@@ -800,13 +830,7 @@ eof
 replica 620a
 case signals_in_a_row
 termios 2400 5 3600277 105073 03 1c 7f 15 04 00 01 00 11 13 1a 00 12 0f 17 16 00 00 00
-write master 03
-master 5e43
-replica
-write master 1c
-master 5e5c
-replica
-write master 1a
+write master 031c1a
 master 5e5a
 replica
 case parmrk_eol

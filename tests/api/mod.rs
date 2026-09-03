@@ -1,4 +1,4 @@
-use line_discipline::{Signal, State, Termios};
+use line_discipline::{Event, Signal, State, Termios};
 use pretty_assertions::assert_eq;
 
 /// The default termios without the local flags named
@@ -12,31 +12,33 @@ fn without(local: u32) -> Termios {
 fn a_canonical_line_reaches_the_program_with_its_echo() {
     let mut state = State::default();
     let result = state.input(b"ls\n");
-    assert_eq!((result.consumed, result.eof), (3, false));
     assert_eq!(result.to_replica, b"ls\n");
     assert_eq!(result.to_master, b"ls\r\n");
-    assert_eq!(result.signal, None);
+    assert_eq!(result.events, []);
 }
 
 #[test]
-fn each_signal_character_names_its_signal_and_ends_the_call() {
+fn each_signal_character_names_its_signal_in_order() {
     let mut state = State::default();
-    let typed = b"\x03\x1c\x1a";
-    let mut rest: &[u8] = typed;
-    let mut signals = Vec::new();
-    while !rest.is_empty() {
-        let result = state.input(rest);
-        signals.push((result.signal, result.consumed, result.to_master));
-        rest = rest.get(result.consumed..).unwrap_or(&[]);
-    }
+    let result = state.input(b"\x03\x1c\x1a");
     assert_eq!(
-        signals,
+        result.events,
         [
-            (Some(Signal::Interrupt), 1, b"^C".to_vec()),
-            (Some(Signal::Quit), 1, b"^\\".to_vec()),
-            (Some(Signal::Suspend), 1, b"^Z".to_vec()),
+            Event::Signal {
+                at: 0,
+                signal: Signal::Interrupt
+            },
+            Event::Signal {
+                at: 0,
+                signal: Signal::Quit
+            },
+            Event::Signal {
+                at: 0,
+                signal: Signal::Suspend
+            },
         ]
     );
+    assert_eq!(result.to_master, b"^Z");
 }
 
 #[test]
@@ -44,47 +46,63 @@ fn a_signal_flushes_the_line_and_the_echo_unless_noflsh() {
     let mut state = State::default();
     let flushed = state.input(b"ab\x03c\n");
     assert_eq!(
-        (
-            flushed.consumed,
-            flushed.to_replica.as_slice(),
-            flushed.to_master.as_slice()
-        ),
-        (3, &b""[..], &b"^C"[..])
+        (flushed.to_replica.as_slice(), flushed.to_master.as_slice()),
+        (&b"c\n"[..], &b"^Cc\r\n"[..])
     );
-    assert_eq!(state.input(b"c\n").to_replica, b"c\n");
 
     let mut termios = Termios::default();
     termios.local_flags |= Termios::NOFLSH;
     let mut state = State::new(termios);
     let kept = state.input(b"ab\x03c\n");
     assert_eq!(
-        (
-            kept.consumed,
-            kept.to_replica.as_slice(),
-            kept.to_master.as_slice()
-        ),
-        (3, &b""[..], &b"ab^C"[..])
+        (kept.to_replica.as_slice(), kept.to_master.as_slice()),
+        (&b"abc\n"[..], &b"ab^Cc\r\n"[..])
     );
-    assert_eq!(state.input(b"c\n").to_replica, b"abc\n");
 }
 
 #[test]
-fn an_end_of_file_on_an_empty_line_ends_the_call() {
+fn a_signal_marks_where_it_falls_among_the_completed_lines() {
+    let mut termios = Termios::default();
+    termios.local_flags |= Termios::NOFLSH;
+    let mut state = State::new(termios);
+    let result = state.input(b"a\n\x03b\n");
+    assert_eq!(result.to_replica, b"a\nb\n");
+    assert_eq!(
+        result.events,
+        [Event::Signal {
+            at: 2,
+            signal: Signal::Interrupt
+        }]
+    );
+}
+
+#[test]
+fn an_end_of_file_on_an_empty_line_marks_where_the_reader_stops() {
     let mut state = State::default();
     let result = state.input(b"a\n\x04b\n");
-    assert_eq!((result.consumed, result.eof), (3, true));
-    assert_eq!(result.to_replica, b"a\n");
-    let rest = state.input(b"b\n");
-    assert_eq!((rest.consumed, rest.eof), (2, false));
-    assert_eq!(rest.to_replica, b"b\n");
+    assert_eq!(result.to_replica, b"a\nb\n");
+    assert_eq!(result.events, [Event::Eof { at: 2 }]);
 }
 
 #[test]
 fn an_end_of_file_after_input_delivers_the_line_without_it() {
     let mut state = State::default();
     let result = state.input(b"hi\x04");
-    assert_eq!((result.consumed, result.eof), (3, false));
     assert_eq!(result.to_replica, b"hi");
+    assert_eq!(result.events, []);
+}
+
+#[test]
+fn a_lone_end_of_file_under_extproc_is_a_zero_length_read() {
+    let mut termios = Termios::default();
+    termios.local_flags |= Termios::EXTPROC;
+    let mut state = State::new(termios);
+    let alone = state.input(b"\x04");
+    assert_eq!(alone.to_replica, b"");
+    assert_eq!(alone.events, [Event::Eof { at: 0 }]);
+    let within = state.input(b"ab\x04c");
+    assert_eq!(within.to_replica, b"ab\x04c");
+    assert_eq!(within.events, []);
 }
 
 #[test]
@@ -121,6 +139,7 @@ fn stop_holds_output_and_echo_until_start() {
     let held = state.output(b"x");
     assert_eq!((held.consumed, held.to_master.as_slice()), (0, &b""[..]));
     assert_eq!(state.input(b"\x11").to_master, b"ab");
+    assert!(!state.is_output_stopped());
     let shown = state.output(b"x");
     assert_eq!((shown.consumed, shown.to_master.as_slice()), (1, &b"x"[..]));
 }
@@ -153,6 +172,29 @@ fn stop_output_holds_output_until_start_output() {
     state.start_output();
     assert!(!state.is_output_stopped());
     assert_eq!(state.output(b"x").consumed, 1);
+}
+
+#[test]
+fn held_echo_never_outgrows_the_kernel_buffer() {
+    let mut state = State::default();
+    state.stop_output();
+    for _ in 0_u32..1000 {
+        assert_eq!(state.input(&[b'a'; 1000]).to_master, b"");
+    }
+    state.start_output();
+    let released = state.output(b"").to_master;
+    assert!(released.len() <= 4096, "{} bytes released", released.len());
+}
+
+#[test]
+fn a_parmrk_flood_keeps_the_line_within_the_kernel_buffer() {
+    let mut termios = Termios::default();
+    termios.input_flags |= Termios::PARMRK;
+    let mut state = State::new(termios);
+    assert_eq!(state.input(&[0xff; 5000]).to_replica, b"");
+    let line = state.input(b"\n").to_replica;
+    assert_eq!(line.len(), 4096);
+    assert_eq!((line.first(), line.last()), (Some(&0xff), Some(&b'\n')));
 }
 
 #[test]
@@ -207,29 +249,4 @@ fn a_state_mid_line_survives_an_rkyv_round_trip() {
     assert_eq!(restored.input(b"").to_replica, b"");
     let mut original = state;
     assert_eq!(original.input(b"\x11\n").to_replica, b"abc\n");
-}
-
-#[test]
-fn a_parmrk_flood_keeps_the_line_within_the_kernel_buffer() {
-    let mut termios = Termios::default();
-    termios.input_flags |= Termios::PARMRK;
-    let mut state = State::new(termios);
-    assert_eq!(state.input(&[0xff; 5000]).to_replica, b"");
-    let line = state.input(b"\n").to_replica;
-    assert_eq!(line.len(), 4096);
-    assert_eq!((line.first(), line.last()), (Some(&0xff), Some(&b'\n')));
-}
-
-#[test]
-fn held_echo_drops_its_oldest_bytes_past_the_kernel_watermark() {
-    let mut state = State::default();
-    assert_eq!(state.input(b"\x13").to_master, b"");
-    assert_eq!(state.input(&[b'a'; 4096]).to_master, b"");
-    assert_eq!(state.input(b"b").to_master, b"");
-    let released = state.input(b"\x11").to_master;
-    assert_eq!(released.len(), 3808);
-    assert_eq!(
-        (released.first(), released.last()),
-        (Some(&b'a'), Some(&b'b'))
-    );
 }

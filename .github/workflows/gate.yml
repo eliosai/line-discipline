@@ -32,6 +32,8 @@ jobs:
         run: just check
       - name: tests
         run: just test-ci
+      - name: differential fuzz against a real pty
+        run: just fuzz-ci
       - name: doc tests
         run: just test-doc
       - name: doc build

@@ -72,6 +72,15 @@ bench:
 capture:
     python3 scripts/capture-cases.py
 
+# Record random pty sessions and replay them against the crate
+fuzz seed="0" count="2000" jobs="0":
+    python3 scripts/fuzz-cases.py --seed {{seed}} --count {{count}} {{ if jobs == "0" { "" } else { "--jobs " + jobs } }} --out target/fuzz/cases-{{seed}}.txt
+    LINE_DISCIPLINE_CASES=target/fuzz/cases-{{seed}}.txt cargo nextest run --all-features --run-ignored ignored-only -E 'test(every_fuzzed_case_replays_byte_for_byte)'
+
+# Fuzz a fresh seed, the way the gate and the push hook do
+fuzz-ci count="300":
+    just fuzz $(date +%s) {{count}} 4
+
 # Install the git hooks
 hooks:
     prek install --hook-type pre-commit --hook-type pre-push
