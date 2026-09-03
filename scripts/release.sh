@@ -79,6 +79,7 @@ fi
 
 if [[ "$next" != "$current" ]]; then
     sed -i "s/^version = \"$current\"$/version = \"$next\"/" Cargo.toml
+    sed -i "s/^line-discipline = \".*\"$/line-discipline = \"${next%%.*}\"/" README.md
     cargo update --workspace
 fi
 
@@ -88,7 +89,7 @@ git-cliff --tag "v$next" --output CHANGELOG.md
 
 git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-git add Cargo.toml Cargo.lock CHANGELOG.md
+git add Cargo.toml Cargo.lock CHANGELOG.md README.md
 if ! git diff --cached --quiet; then
     git commit -m "chore(release): v$next"
 fi

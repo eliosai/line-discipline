@@ -9,15 +9,21 @@ One pty's line discipline. `State::new(termios)` starts one, and `State::default
 with `Termios::default()`.
 
 - `termios()` returns the termios in force
-- `set_termios(termios)` installs a termios, the replica's `tcsetattr`, and returns the bytes a
-  switch out of canonical mode (or into `EXTPROC`) releases to the program; it also restarts
-  output that `VSTOP` held when the new termios drops `IXON`
+- `set_termios(termios)` installs a termios, the replica's `tcsetattr`, and returns a
+  `TermiosResult`: the line an `ICANON` or `EXTPROC` change releases to the program, and the echo
+  a dropped `IXON` releases to the terminal along with the output `VSTOP` held
 - `flush_input()` drops the line under edit, the `TCIFLUSH` half of `tcflush`
+- `stop_output()` and `start_output()` are the `TCOOFF` and `TCOON` halves of `tcflow`: the
+  first holds output and echo, and only the second releases them, whatever `VSTART`, `IXANY` or
+  a dropped `IXON` says in between
+- `is_output_stopped()` reports whether `VSTOP` or `stop_output` holds output, so a driver knows
+  an `output` call would consume nothing; `start_output` hands the echo it held to the next
+  `input` or `output` call, the way `start_tty` wakes the writer without processing echo
 - `input(bytes)` takes bytes the master wrote and returns an `InputResult`
 - `output(bytes)` takes bytes the replica wrote and returns an `OutputResult`
 
-`State` is `Debug`, `Clone`, `PartialEq`, `Eq` and `Default`, and with the `rkyv` feature
-`rkyv::Archive`, `Serialize` and `Deserialize`.
+`State` is `#[non_exhaustive]` with every field private, `Debug`, `Clone`, `PartialEq`, `Eq` and
+`Default`, and with the `rkyv` feature `rkyv::Archive`, `Serialize` and `Deserialize`.
 
 ## `Termios`
 
@@ -36,11 +42,23 @@ values, the `c_cflag` bits `CBAUD` through `CRTSCTS` with every `B*` rate and `I
 
 ## `InputResult`
 
-`consumed` (bytes the call took), `to_master` (the echo), `to_replica` (completed input), `eof`
-(the program reads end of file once `to_replica` is drained) and `signals` (`Vec<Signal>`, in
-order). The call takes every byte offered unless an end of file on an empty line ends it, and
-then `consumed` stops after the `VEOF` byte. The struct is `#[non_exhaustive]` and `Debug`,
-`Clone`, `PartialEq`, `Eq` and `Default`.
+`to_master` (the echo), `to_replica` (completed input) and `events` (`Vec<Event>`, in order). The
+call always takes every byte offered. The struct is `#[non_exhaustive]` and `Debug`, `Clone`,
+`PartialEq`, `Eq` and `Default`.
+
+## `Event`
+
+What the program sees between the bytes of `to_replica`, each carrying the offset `at` it falls
+at. `Eof` is a read that returns nothing, from a `VEOF` character on an empty canonical line or,
+under `EXTPROC`, from a `VEOF` byte the program would read alone. `Signal` carries the `Signal`
+to deliver to the foreground process group. The enum is `#[non_exhaustive]` and `Debug`, `Clone`,
+`Copy`, `PartialEq`, `Eq` and `Hash`.
+
+## `TermiosResult`
+
+`to_master` (the echo a dropped `IXON` releases) and `to_replica` (the line an `ICANON` or
+`EXTPROC` change releases). The struct is `#[non_exhaustive]` and `Debug`, `Clone`, `PartialEq`,
+`Eq` and `Default`.
 
 ## `OutputResult`
 

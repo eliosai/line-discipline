@@ -106,6 +106,9 @@ def run(case, out):
         elif kind == "flush":
             termios.tcflush(replica, termios.TCIFLUSH)
             out.append("flush")
+        elif kind in ("tcoff", "tcon"):
+            termios.tcflow(replica, termios.TCOOFF if kind == "tcoff" else termios.TCOON)
+            out.append(kind)
         echoed = drain(master)
         out.append(f"master {echoed[0].hex()}")
         for index, segment in enumerate(drain(replica)):
@@ -218,7 +221,7 @@ CASES = [
     Case("out_tab_after_cr", [r(b"abc\r\t")], oflag=flags(BASE_O, "XTABS")),
     Case("out_tab_after_nl", [r(b"abc\n\t")], oflag=flags(BASE_O, "XTABS")),
     Case("out_tab_after_nl_no_onlcr", [r(b"abc\n\t")], oflag=flags(BASE_O, "XTABS", drop="ONLCR")),
-    Case("out_olcuc", [r(b"abc\xe9\xf7\n")], oflag=flags(BASE_O, "OLCUC")),
+    Case("out_olcuc", [r(b"abc\xe9\xf7\xdf\n")], oflag=flags(BASE_O, "OLCUC")),
     Case("out_backspace", [r(b"abc\b\t")], oflag=flags(BASE_O, "XTABS")),
     Case("out_utf8_column", [r(b"\xc3\xa9\t")], iflag=flags(BASE_I, "IUTF8"), oflag=flags(BASE_O, "XTABS")),
     Case("out_utf8_off_column", [r(b"\xc3\xa9\t")], oflag=flags(BASE_O, "XTABS")),
@@ -230,6 +233,14 @@ CASES = [
     Case("switch_to_raw_releases_line", [m(b"ab"), ("set", Case("", [], lflag=flags(BASE_L, drop="ICANON")))]),
     Case("switch_to_canon_keeps", [m(b"ab"), ("set", Case("", [], lflag=BASE_L)), m(b"c\n")], lflag=flags(BASE_L, drop="ICANON")),
     Case("switch_ixon_off_restarts", [m(b"\x13"), ("set", Case("", [], iflag=flags(BASE_I, drop="IXON"))), r(b"x")]),
+    Case("switch_ixon_off_releases_echo", [m(b"\x13ab"), ("set", Case("", [], iflag=flags(BASE_I, drop="IXON")))]),
+    Case("tcflow_off_holds_output", [("tcoff",), r(b"x"), ("tcon",), r(b"y")]),
+    Case("tcflow_off_ignores_vstart", [("tcoff",), m(b"\x11"), r(b"x"), ("tcon",), r(b"y")]),
+    Case("tcflow_off_ignores_ixany", [("tcoff",), m(b"a"), r(b"x")], iflag=flags(BASE_I, "IXANY")),
+    Case("tcflow_off_ignores_ixon_drop", [("tcoff",), ("set", Case("", [], iflag=flags(BASE_I, drop="IXON"))), r(b"x")]),
+    Case("tcflow_on_releases_vstop", [m(b"\x13"), ("tcoff",), ("tcon",), r(b"x")]),
+    Case("tcflow_off_echo_waits", [("tcoff",), m(b"ab"), ("tcon",), m(b"c")]),
+    Case("tcflow_off_intr_keeps_stopped", [("tcoff",), m(b"\x03"), r(b"x")]),
     Case("switch_resets_lnext", [m(b"\x16"), ("set", Case("", [], lflag=flags(BASE_L, drop="ICANON"))), m(b"\x03")]),
     Case("switch_same_keeps_line", [m(b"ab"), ("set", Case("", [], lflag=BASE_L)), m(b"\n")]),
     Case("flush_input", [m(b"ab"), ("flush",), m(b"\n")]),
@@ -238,6 +249,10 @@ CASES = [
     Case("flow_echo_before_stop", [m(b"ab\x13c"), m(b"\x11")]),
     Case("istrip_makes_a_signal", [m(b"a\x83b\n")], iflag=flags(BASE_I, "ISTRIP")),
     Case("switch_extproc_releases_line", [m(b"ab"), ("set", Case("", [], lflag=flags(BASE_L, "EXTPROC")))]),
+    Case("extproc_eof_alone", [m(b"\x04")], lflag=flags(BASE_L, "EXTPROC")),
+    Case("extproc_eof_after_data", [m(b"ab"), m(b"\x04"), m(b"c")], lflag=flags(BASE_L, "EXTPROC")),
+    Case("extproc_eof_within_a_write", [m(b"ab\x04c")], lflag=flags(BASE_L, "EXTPROC")),
+    Case("extproc_eof_no_icanon", [m(b"\x04")], lflag=flags(BASE_L, "EXTPROC", drop="ICANON")),
     Case("noncanon_echonl", [m(b"a\n")], lflag=flags(BASE_L, "ECHONL", drop="ECHO ICANON")),
     Case("canon_echonl_icrnl", [m(b"a\r")], lflag=flags(BASE_L, "ECHONL", drop="ECHO")),
     Case("kill_utf8", [m(b"\xc3\xa9\x15\n")], iflag=flags(BASE_I, "IUTF8")),

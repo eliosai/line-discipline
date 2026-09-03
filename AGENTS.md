@@ -26,8 +26,9 @@ scans comments, docs and layout, format-checks, then type-checks and lints both 
 warnings denied. `just test` runs nextest, `just test-doc` the doc examples, `just doc-check` the
 docs.rs build, `just package-check` the crates.io package, `just semver-check` the public API
 against the last release, `just msrv` the 1.85 build, `just audit` cargo-deny, `just capture` the
-pty capture (Linux only) and `just ci` all of it. `just hooks` installs the prek hooks, so a
-commit runs `just check` and a push runs `just test`.
+pty capture (Linux only), `just fuzz` a differential run against a real pty and `just ci` all of
+it. `just hooks` installs the prek hooks, so a commit runs `just check` and a push runs `just
+test` and `just fuzz-ci`.
 
 ## The Kernel Is The Reference
 
@@ -37,6 +38,11 @@ Linux box, and then the code that makes the replay pass. A case that depends on 
 timing (a full buffer behind an unread line, or more echo than the kernel's 4096 byte echo buffer
 holds) does not belong in the capture, because the crate hands lines back as they complete and
 the caller owns the queues.
+
+`scripts/fuzz-cases.py` records random sessions the same way and replays them, so a rule nobody
+wrote a case for still has to hold. It runs each session three times and keeps only the ones the
+kernel repeats, and it drops a step that raises a signal after more than one 256 byte echo block,
+which `docs/discipline.md` lists as the one place the kernel races itself.
 
 ## Comments And Prose
 
@@ -69,7 +75,7 @@ with every field public or none, and `docs/api.md` lists every public item.
 - keep functions and methods at 25 lines or less and files under 400 lines; split by behavior first
 - never pair `x.rs` with an `x/` directory, and never use `#[path]`; a module with children is `x/mod.rs`
 - production code never panics; `unwrap`, `expect` and `panic` live only in tests
-- the byte loop allocates nothing per byte; the result vectors grow once per call
+- the byte loop allocates nothing per byte beyond the growth of the result vectors
 - read `rust-best-practices`, `coding-guidelines` and `stop-slop` before every Rust change, and
   `codebase-design` before changing a module boundary or a public signature
 

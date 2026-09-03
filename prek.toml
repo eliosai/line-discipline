@@ -30,4 +30,12 @@ hooks = [
     pass_filenames = false,
     stages = ["pre-push"],
   },
+  {
+    id = "just-fuzz",
+    name = "just fuzz-ci",
+    language = "system",
+    entry = "just fuzz-ci 150",
+    pass_filenames = false,
+    stages = ["pre-push"],
+  },
 ]

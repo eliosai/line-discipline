@@ -10,14 +10,14 @@ pub const fn is_alnum(c: u8) -> bool {
     c.is_ascii_alphanumeric() || is_upper(c) || is_lower(c)
 }
 
-/// Linux `tolower`, which maps the Latin-1 uppercase range as well
+/// Linux `tolower`, which adds 32 to every uppercase letter, Latin-1 included
 pub const fn to_lower(c: u8) -> u8 {
-    if is_upper(c) { c | 0x20 } else { c }
+    if is_upper(c) { c.wrapping_add(32) } else { c }
 }
 
-/// Linux `toupper`, which maps the Latin-1 lowercase range as well
+/// Linux `toupper`, which subtracts 32 from every lowercase letter, so 0xDF gives 0xBF
 pub const fn to_upper(c: u8) -> u8 {
-    if is_lower(c) { c & !0x20 } else { c }
+    if is_lower(c) { c.wrapping_sub(32) } else { c }
 }
 
 /// Linux `isupper`, ASCII and Latin-1 uppercase letters, where 0xD7 is the multiplication sign
@@ -68,5 +68,10 @@ mod tests {
             ),
             (0xE9, 0xD7, 0xC9, 0xF7)
         );
+    }
+
+    #[test]
+    fn sharp_s_uppercases_by_the_kernel_offset() {
+        assert_eq!((to_upper(0xDF), to_upper(0xFF)), (0xBF, 0xDF));
     }
 }
