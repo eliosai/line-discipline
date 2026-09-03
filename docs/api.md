@@ -17,7 +17,8 @@ with `Termios::default()`.
   first holds output and echo, and only the second releases them, whatever `VSTART`, `IXANY` or
   a dropped `IXON` says in between
 - `is_output_stopped()` reports whether `VSTOP` or `stop_output` holds output, so a driver knows
-  an `output` call would consume nothing
+  an `output` call would consume nothing; `start_output` hands the echo it held to the next
+  `input` or `output` call, the way `start_tty` wakes the writer without processing echo
 - `input(bytes)` takes bytes the master wrote and returns an `InputResult`
 - `output(bytes)` takes bytes the replica wrote and returns an `OutputResult`
 
@@ -41,11 +42,17 @@ values, the `c_cflag` bits `CBAUD` through `CRTSCTS` with every `B*` rate and `I
 
 ## `InputResult`
 
-`consumed` (bytes the call took), `to_master` (the echo), `to_replica` (completed input), `eof`
-(the program reads end of file once `to_replica` is drained) and `signal` (`Option<Signal>`, the
-signal to deliver once `to_replica` is drained). The call takes every byte offered unless an end
-of file on an empty line or a signal character ends it, and then `consumed` stops after that
-byte. The struct is `#[non_exhaustive]` and `Debug`, `Clone`, `PartialEq`, `Eq` and `Default`.
+`to_master` (the echo), `to_replica` (completed input) and `events` (`Vec<Event>`, in order). The
+call always takes every byte offered. The struct is `#[non_exhaustive]` and `Debug`, `Clone`,
+`PartialEq`, `Eq` and `Default`.
+
+## `Event`
+
+What the program sees between the bytes of `to_replica`, each carrying the offset `at` it falls
+at. `Eof` is a read that returns nothing, from a `VEOF` character on an empty canonical line or,
+under `EXTPROC`, from a `VEOF` byte the program would read alone. `Signal` carries the `Signal`
+to deliver to the foreground process group. The enum is `#[non_exhaustive]` and `Debug`, `Clone`,
+`Copy`, `PartialEq`, `Eq` and `Hash`.
 
 ## `TermiosResult`
 

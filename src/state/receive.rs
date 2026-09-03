@@ -1,29 +1,24 @@
 use super::{LINE_MAX, State, canon, echo};
 use crate::ctype;
-use crate::result::{InputResult, Signal};
+use crate::result::{Event, InputResult, Signal};
 use crate::termios::Termios;
 
-/// Takes one byte the terminal typed, true when an end of file or a signal ends the call
-pub fn byte(state: &mut State, byte: u8, out: &mut InputResult) -> bool {
+/// `n_tty_receive_buf_standard` for one byte the terminal typed
+pub fn byte(state: &mut State, byte: u8, out: &mut InputResult) {
     if state.lflag(Termios::ICANON) && state.line.len() >= LINE_MAX {
         state.line.pop();
     }
     let c = preprocess(state, byte);
-    let eof = if state.lnext {
+    if state.lnext {
         state.lnext = false;
         plain(state, c, out);
-        false
     } else if state.lflag(Termios::EXTPROC) {
         queue(state, c, out);
-        false
     } else if is_special(state, c) {
-        special(state, c, out)
+        special(state, c, out);
     } else {
         plain(state, c, out);
-        false
-    };
-    echo::trim(state);
-    eof
+    }
 }
 
 /// `ISTRIP` and `IUCLC`, applied before any other rule
@@ -81,30 +76,27 @@ fn signal_for(state: &State, c: u8) -> Option<Signal> {
 }
 
 /// `n_tty_receive_char_special`: flow control, signals, translation, then the canonical rules
-fn special(state: &mut State, c: u8, out: &mut InputResult) -> bool {
+fn special(state: &mut State, c: u8, out: &mut InputResult) {
     if state.iflag(Termios::IXON) && flow_control(state, c, out) {
-        return false;
+        return;
     }
     if let Some(signal) = signal_for(state, c).filter(|_| state.lflag(Termios::ISIG)) {
         raise(state, signal, c, out);
-        return true;
+        return;
     }
     restart_on_any(state, out);
     let c = match c {
-        b'\r' if state.iflag(Termios::IGNCR) => return false,
+        b'\r' if state.iflag(Termios::IGNCR) => return,
         b'\r' if state.iflag(Termios::ICRNL) => b'\n',
         b'\n' if state.iflag(Termios::INLCR) => b'\r',
         c => c,
     };
-    if state.lflag(Termios::ICANON) {
-        match canon::receive(state, c, out) {
-            canon::Outcome::Handled => return false,
-            canon::Outcome::Ended => return true,
-            canon::Outcome::Plain => {}
-        }
+    if state.lflag(Termios::ICANON)
+        && matches!(canon::receive(state, c, out), canon::Outcome::Handled)
+    {
+        return;
     }
     accept(state, c, true, out);
-    false
 }
 
 /// `VSTART` releases held output and `VSTOP` holds it, and neither is echoed or queued
@@ -119,10 +111,10 @@ fn flow_control(state: &mut State, c: u8, out: &mut InputResult) -> bool {
     true
 }
 
-/// Releases output and the echo it held back, unless `stop_output` holds them
+/// `start_tty` then `process_echoes`: releases output that `VSTOP` holds and the echo behind it
 fn start(state: &mut State, out: &mut InputResult) {
     state.start();
-    echo::commit(state, &mut out.to_master);
+    echo::release(state, &mut out.to_master);
 }
 
 /// Under `IXANY` any byte releases output that `VSTOP` holds
@@ -132,22 +124,40 @@ fn restart_on_any(state: &mut State, out: &mut InputResult) {
     }
 }
 
-/// `isig`: the signal, the flush unless `NOFLSH`, the release under `IXON`, then the echo
+/// `n_tty_receive_signal_char`: the signal, the flush unless `NOFLSH`, the restart under `IXON`, then the echo
 fn raise(state: &mut State, signal: Signal, c: u8, out: &mut InputResult) {
-    out.signal = Some(signal);
     if !state.lflag(Termios::NOFLSH) {
-        state.line.clear();
-        state.echo.clear();
-        state.erasing = false;
-        out.to_master.clear();
-        out.to_replica.clear();
+        flush(state, out);
     }
+    out.events.push(Event::Signal {
+        at: out.to_replica.len(),
+        signal,
+    });
     if state.iflag(Termios::IXON) {
         state.start();
     }
     if state.lflag(Termios::ECHO) {
         echo::visible(state, c);
+        echo::commit(state, &mut out.to_master);
+    } else {
+        echo::release(state, &mut out.to_master);
     }
+}
+
+/// The queue flush of `isig`, which drops the buffers and what this call has not returned yet
+fn flush(state: &mut State, out: &mut InputResult) {
+    echo::clear(state);
+    state.line.clear();
+    state.erasing = false;
+    out.to_master.clear();
+    out.to_replica.clear();
+    out.events.retain_mut(|event| match event {
+        Event::Signal { at, .. } => {
+            *at = 0;
+            true
+        }
+        Event::Eof { .. } => false,
+    });
 }
 
 /// `n_tty_receive_char`: echo and queue an ordinary byte
@@ -166,6 +176,7 @@ fn accept(state: &mut State, c: u8, raw_newline: bool, out: &mut InputResult) {
             echo::set_canon_column(state);
             echo::visible(state, c);
         }
+        echo::commit(state, &mut out.to_master);
     }
     if c == 0xff && state.iflag(Termios::PARMRK) {
         queue(state, c, out);

@@ -1,14 +1,12 @@
 use super::{State, echo};
 use crate::ctype;
-use crate::result::InputResult;
+use crate::result::{Event, InputResult};
 use crate::termios::Termios;
 
 /// What the canonical rules did with a byte
 pub enum Outcome {
     /// The byte edited or ended the line
     Handled,
-    /// The byte was an end of file on an empty line, which ends the call
-    Ended,
     /// The byte is ordinary input
     Plain,
 }
@@ -26,10 +24,11 @@ pub fn receive(state: &mut State, c: u8, out: &mut InputResult) -> Outcome {
     let iexten = state.lflag(Termios::IEXTEN);
     if is_erase(state, c) {
         eraser(state, c);
+        echo::commit(state, &mut out.to_master);
     } else if iexten && c == state.cc(Termios::VLNEXT) {
-        literal_next(state);
+        literal_next(state, &mut out.to_master);
     } else if iexten && state.lflag(Termios::ECHO) && c == state.cc(Termios::VREPRINT) {
-        reprint(state, c);
+        reprint(state, c, &mut out.to_master);
     } else {
         return line_end(state, c, out);
     }
@@ -49,14 +48,17 @@ fn line_end(state: &mut State, c: u8, out: &mut InputResult) -> Outcome {
     if c == b'\n' {
         if state.lflag(Termios::ECHO) || state.lflag(Termios::ECHONL) {
             echo::raw(state, b'\n');
+            echo::commit(state, &mut out.to_master);
         }
         complete(state, Some(b'\n'), out);
     } else if c == state.cc(Termios::VEOF) {
         if state.line.is_empty() {
-            out.eof = true;
-            return Outcome::Ended;
+            out.events.push(Event::Eof {
+                at: out.to_replica.len(),
+            });
+        } else {
+            complete(state, None, out);
         }
-        complete(state, None, out);
     } else if c == state.cc(Termios::VEOL) || (iexten && c == state.cc(Termios::VEOL2)) {
         end_of_line(state, c, out);
     } else {
@@ -70,6 +72,7 @@ fn end_of_line(state: &mut State, c: u8, out: &mut InputResult) {
     if state.lflag(Termios::ECHO) {
         echo::set_canon_column(state);
         echo::visible(state, c);
+        echo::commit(state, &mut out.to_master);
     }
     if c == 0xff && state.iflag(Termios::PARMRK) {
         state.push_line(c);
@@ -84,7 +87,7 @@ fn complete(state: &mut State, terminator: Option<u8>, out: &mut InputResult) {
 }
 
 /// `VLNEXT` takes the next byte literally and shows `^` with a backspace over it
-fn literal_next(state: &mut State) {
+fn literal_next(state: &mut State, to_master: &mut Vec<u8>) {
     state.lnext = true;
     if !state.lflag(Termios::ECHO) {
         return;
@@ -93,11 +96,12 @@ fn literal_next(state: &mut State) {
     if state.lflag(Termios::ECHOCTL) {
         echo::raw(state, b'^');
         echo::raw(state, b'\x08');
+        echo::commit(state, to_master);
     }
 }
 
 /// `VREPRINT` echoes itself, a newline and the line under edit
-fn reprint(state: &mut State, c: u8) {
+fn reprint(state: &mut State, c: u8, to_master: &mut Vec<u8>) {
     echo::finish_erasing(state);
     echo::visible(state, c);
     echo::raw(state, b'\n');
@@ -106,6 +110,7 @@ fn reprint(state: &mut State, c: u8) {
         echo::visible(state, byte);
         index = index.saturating_add(1);
     }
+    echo::commit(state, to_master);
 }
 
 /// `eraser`: remove one character, one word or the line, echoing the way the flags ask
