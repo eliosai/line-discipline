@@ -82,7 +82,8 @@ A special byte, in order:
   `0xff` always takes one column and skips `OPOST`, as the kernel's escaped echo byte does.
 - The column a line starts at is recorded before its first echoed byte and used to erase a tab.
 - Under `VSTOP` the echo waits in `State` and `VSTART`, `IXANY`, a signal character, or the next
-  `output` call after `IXON` is dropped releases it.
+  `output` call after `IXON` is dropped releases it; once more than 4096 bytes wait, the oldest
+  are dropped until 3808 remain, the kernel's discard watermark.
 
 ## Output
 
@@ -109,8 +110,9 @@ edit is released to the program as raw bytes, the way the kernel marks it readab
 
 - Echo is post-processed when it is produced, not when `VSTART` releases it, so an `OPOST` change
   while output is held applies to later echo only.
-- The kernel discards echo once 3808 bytes wait in its 4096 byte echo buffer; the crate holds all
-  of it.
+- The kernel counts held echo in its own encoding, where a control character shown as `^X` takes
+  two bytes and an erased tab three, and discards each time it processes echo; the crate counts
+  the rendered bytes and discards when more than 4096 wait, so the boundary differs by a few bytes.
 - The kernel's flush on a signal also drops the replica's unread output and the master's unread
   echo from earlier calls; the crate cannot retract what it already returned.
 - Under `PARMRK` the kernel reserves three bytes of room per byte received, so its line fills
