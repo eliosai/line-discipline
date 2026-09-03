@@ -152,3 +152,14 @@ fn a_state_mid_line_survives_an_rkyv_round_trip() {
     let mut original = state;
     assert_eq!(original.input(b"\x11\n").to_replica, b"abc\n");
 }
+
+#[test]
+fn a_parmrk_flood_keeps_the_line_within_the_kernel_buffer() {
+    let mut termios = Termios::default();
+    termios.input_flags |= Termios::PARMRK;
+    let mut state = State::new(termios);
+    assert_eq!(state.input(&[0xff; 5000]).to_replica, b"");
+    let line = state.input(b"\n").to_replica;
+    assert_eq!(line.len(), 4096);
+    assert_eq!((line.first(), line.last()), (Some(&0xff), Some(&b'\n')));
+}
