@@ -84,7 +84,7 @@ impl State {
         self.erasing = false;
     }
 
-    /// Takes bytes the terminal typed and returns the echo, the completed input and the signals
+    /// Takes bytes the terminal typed and returns the echo, the completed input and the signal
     #[must_use]
     pub fn input(&mut self, bytes: &[u8]) -> InputResult {
         let mut out = InputResult {
@@ -92,11 +92,10 @@ impl State {
             to_master: Vec::new(),
             to_replica: Vec::new(),
             eof: false,
-            signals: Vec::new(),
+            signal: None,
         };
         for (index, &byte) in bytes.iter().enumerate() {
             if receive::byte(self, byte, &mut out) {
-                out.eof = true;
                 out.consumed = index.saturating_add(1);
                 break;
             }

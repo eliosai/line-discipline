@@ -12,8 +12,8 @@ column. The caller holds what the kernel keeps outside the line discipline:
 - the master and replica file descriptors and the queues between them: a completed line comes
   back in `to_replica` the moment it completes, so the crate never stalls a writer on a full
   buffer, and the caller's queue is the buffer
-- the foreground process group: `signals` is a list to deliver, `TOSTOP` and job control are the
-  caller's, and a signal the kernel would not send (no session on the tty) is still listed
+- the foreground process group: `signal` names the one to deliver, `TOSTOP` and job control are
+  the caller's, and a signal the kernel would not send (no session on the tty) is still named
 - `VMIN`, `VTIME` and blocking: the crate hands over what is complete and the caller decides when
   a read returns
 - `tcflow`: `TCOOFF` and `TCOON` stop and start the caller's output path, and `TCIOFF` and
@@ -43,10 +43,11 @@ Per byte, in order:
 A special byte, in order:
 
 - `VSTART` releases held output and echo, `VSTOP` holds them, and neither is echoed or queued.
-- `VINTR`, `VQUIT` and `VSUSP` under `ISIG` list their signal. Unless `NOFLSH` is set, the line
-  under edit, the held echo, and the echo and lines this call already produced are dropped, the
-  way `isig` flushes both queues. Under `IXON` output restarts. Under `ECHO` the character is
-  echoed as `^X`.
+- `VINTR`, `VQUIT` and `VSUSP` under `ISIG` name their signal and end the call after their byte,
+  so the caller delivers the signal between the bytes before it and the bytes after it. Unless
+  `NOFLSH` is set, the line under edit, the held echo, and the echo and lines this call already
+  produced are dropped, the way `isig` flushes both queues. Under `IXON` output restarts. Under
+  `ECHO` the character is echoed as `^X`.
 - Under `IXON` and `IXANY` any other special byte releases held output.
 - `\r` is dropped under `IGNCR` and becomes `\n` under `ICRNL`; `\n` becomes `\r` under `INLCR`.
 - In canonical mode `VERASE`, `VKILL` and `VWERASE` (with `IEXTEN`) edit the line; `VLNEXT` (with
@@ -114,7 +115,9 @@ edit is released to the program as raw bytes, the way the kernel marks it readab
   two bytes and an erased tab three, and discards each time it processes echo; the crate counts
   the rendered bytes and discards when more than 4096 wait, so the boundary differs by a few bytes.
 - The kernel's flush on a signal also drops the replica's unread output and the master's unread
-  echo from earlier calls; the crate cannot retract what it already returned.
+  echo from earlier calls, and a signal ends an `input` call, so the echo of a signal character
+  earlier in the same write counts as an earlier call; the crate cannot retract what it already
+  returned.
 - Under `PARMRK` the kernel reserves three bytes of room per byte received, so its line fills
   sooner; the crate applies the same 4096 byte limit to every byte it stores, doubled or not, and
   outside canonical mode the caller's queue is the only limit.
