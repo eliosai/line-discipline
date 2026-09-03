@@ -5,6 +5,6 @@ mod result;
 mod state;
 mod termios;
 
-pub use result::{InputResult, OutputResult, Signal, TermiosResult};
+pub use result::{Event, InputResult, OutputResult, Signal, TermiosResult};
 pub use state::State;
 pub use termios::Termios;

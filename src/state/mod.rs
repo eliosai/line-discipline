@@ -3,7 +3,7 @@ mod echo;
 mod output;
 mod receive;
 
-use crate::result::{InputResult, OutputResult, TermiosResult};
+use crate::result::{Event, InputResult, OutputResult, TermiosResult};
 use crate::termios::Termios;
 
 /// Bytes one canonical line may hold, the kernel's `N_TTY_BUF_SIZE`
@@ -47,6 +47,8 @@ pub struct State {
     termios: Termios,
     line: Vec<u8>,
     echo: Vec<u8>,
+    echo_commit: usize,
+    echo_mark: usize,
     cursor: Cursor,
     erasing: bool,
     lnext: bool,
@@ -61,6 +63,8 @@ impl State {
             termios,
             line: Vec::new(),
             echo: Vec::new(),
+            echo_commit: 0,
+            echo_mark: 0,
             cursor: Cursor {
                 column: 0,
                 canon_column: 0,
@@ -88,9 +92,9 @@ impl State {
         let mode_changed = (self.termios.local_flags ^ termios.local_flags) & mode != 0;
         let ixon_dropped = self.iflag(Termios::IXON) && termios.input_flags & Termios::IXON == 0;
         self.termios = termios;
-        if ixon_dropped {
+        if ixon_dropped && !matches!(self.flow, Flow::Tcooff) {
             self.start();
-            echo::commit(self, &mut out.to_master);
+            echo::release(self, &mut out.to_master);
         }
         if mode_changed {
             self.erasing = false;
@@ -143,24 +147,32 @@ impl State {
         matches!(self.flow, Flow::Xoff)
     }
 
-    /// Takes bytes the terminal typed and returns the echo, the completed input and the signal
+    /// Takes one write from the terminal and returns the echo, the completed input and the events
     #[must_use]
     pub fn input(&mut self, bytes: &[u8]) -> InputResult {
         let mut out = InputResult {
-            consumed: bytes.len(),
             to_master: Vec::new(),
             to_replica: Vec::new(),
-            eof: false,
-            signal: None,
+            events: Vec::new(),
         };
-        for (index, &byte) in bytes.iter().enumerate() {
-            if receive::byte(self, byte, &mut out) {
-                out.consumed = index.saturating_add(1);
-                break;
-            }
+        for &byte in bytes {
+            receive::byte(self, byte, &mut out);
         }
-        echo::commit(self, &mut out.to_master);
+        echo::flush(self, &mut out.to_master);
+        self.extproc_eof(&mut out);
         out
+    }
+
+    /// `copy_from_read_buf` turns a lone `VEOF` byte under `EXTPROC` and `ICANON` into a zero-length read
+    fn extproc_eof(&self, out: &mut InputResult) {
+        let alone = out.to_replica.first() == Some(&self.cc(Termios::VEOF))
+            && out.to_replica.len() == 1
+            && self.lflag(Termios::EXTPROC)
+            && self.lflag(Termios::ICANON);
+        if alone {
+            out.to_replica.clear();
+            out.events.push(Event::Eof { at: 0 });
+        }
     }
 
     /// Takes bytes the program wrote and returns them post-processed for the terminal
