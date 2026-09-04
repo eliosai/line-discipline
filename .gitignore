@@ -13,3 +13,4 @@ junit.xml
 .claude/*
 !.claude/skills
 .mcp.json
+__pycache__/
