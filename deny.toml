@@ -7,12 +7,12 @@ yanked = "deny"
 
 [licenses]
 unused-allowed-license = "allow"
-allow = ["Apache-2.0", "Apache-2.0 WITH LLVM-exception", "MIT", "Unicode-3.0"]
+allow = [ "Apache-2.0", "Apache-2.0 WITH LLVM-exception", "MIT", "Unicode-3.0" ]
 
 [bans]
 multiple-versions = "deny"
 skip = [
-  { crate = "syn", reason = "rkyv 0.8 derives use syn 3 while bytecheck and munge use syn 2" },
+    { crate = "syn", reason = "rkyv 0.8 derives use syn 3 while bytecheck and munge use syn 2" },
 ]
 
 [sources]

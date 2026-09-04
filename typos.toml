@@ -1,0 +1,8 @@
+# House vocabulary the spell checker would otherwise report
+[files]
+extend-exclude = [ "CHANGELOG.md", ".agents/skills/", "tests/kernel/cases.txt" ]
+
+[default.extend-words]
+# POSIX names the legacy baud aliases EXTA and EXTB, which are not misspellings of EXTRA
+EXTA = "EXTA"
+EXTB = "EXTB"
