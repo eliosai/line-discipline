@@ -6,15 +6,38 @@ default:
     @just --list
 
 # Scan comments, docs and layout, then format-check, type-check and lint both feature sets
+# Run every file level check, which is the same set prek runs on a commit and ci runs on a push
+lint:
+    prek run --all-files
+
+# Format check, then compile every feature pair, then lint every target
+# Clippy runs the same front end as `cargo check`, so no plain check pass runs beside it
 check:
-    bash scripts/comment-scan.sh
-    bash scripts/doc-scan.sh
-    bash scripts/layout-scan.sh
     cargo fmt --all -- --check
-    cargo check --all-targets --all-features
-    cargo check --all-targets --no-default-features
+    cargo hack check --feature-powerset --depth 2 --no-dev-deps
     cargo clippy --all-targets --all-features -- -D warnings
     cargo clippy --all-targets --no-default-features -- -D warnings
+
+# Compile every feature subset, which the paired sweep in `check` bounds at two
+features:
+    cargo hack check --feature-powerset --no-dev-deps
+
+# Ask whether the lower bounds the manifests declare actually resolve and build
+minimal:
+    cargo minimal-versions check --all-features --direct
+
+# Name every dependency no crate in the workspace reaches
+unused:
+    cargo machete --with-metadata
+
+# Report line coverage over the same run the gate makes, which is a figure to read and never a gate
+coverage:
+    cargo llvm-cov nextest --profile ci --all-features --lcov --output-path lcov.info
+
+# Name every mutant that no test noticed, bounded to what this branch changed
+mutants base="origin/main":
+    git diff {{base}}... > /tmp/ld-mutants.diff
+    cargo mutants --test-tool=nextest --in-diff /tmp/ld-mutants.diff
 
 # Format the crate
 fmt:
@@ -69,7 +92,7 @@ capture:
 
 # Install the git hooks
 hooks:
-    prek install --hook-type pre-commit --hook-type pre-push
+    prek install --prepare-hooks
 
 # Run the hooks against every file
 hooks-run:
@@ -81,12 +104,15 @@ release-plan:
 
 # Run everything the gate runs
 ci:
+    just lint
     just check
     just test-ci
     just test-doc
     just doc-check
     just package-check
     just audit
+    just unused
+    just msrv
 
 # Remove every build artifact
 clean:
