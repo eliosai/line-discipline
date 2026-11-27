@@ -3,6 +3,7 @@ rules:
   # GitHub reads `$/` since July 2026 and actionlint 1.7.12 rejects it, so `./` stays until it parses
   self-repository:
     ignore:
+      - bench.yml
       - ci.yml
       - deep.yml
       - release.yml
