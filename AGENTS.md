@@ -21,13 +21,13 @@ terminal shows. The crate is the repository root, and nothing else is published.
 
 ## Commands
 
-Every task has a `just` recipe, and the gate runs nothing a recipe does not run. `just check`
-scans comments, docs and layout, format-checks, then type-checks and lints both feature sets with
-warnings denied. `just test` runs nextest, `just test-doc` the doc examples, `just doc-check` the
+Every task has a `just` recipe. `just lint` runs the prek hooks, which scan comments, docs and
+layout. `just check` format-checks, then type-checks and lints both feature sets with warnings
+denied. `just test` runs nextest, `just test-doc` the doc examples, `just doc-check` the
 docs.rs build, `just package-check` the crates.io package, `just semver-check` the public API
 against the last release, `just msrv` the 1.85 build, `just audit` cargo-deny, `just capture` the
-pty capture (Linux only) and `just ci` all of it. `just hooks` installs the prek hooks, so a
-commit runs `just check` and a push runs `just test`.
+pty capture (Linux only) and `just ci` the build and test checks of the gate. `just hooks`
+installs the prek hooks, which a commit and a push run.
 
 ## The Kernel Is The Reference
 
@@ -83,10 +83,10 @@ with every field public or none, and `docs/api.md` lists every public item.
 
 ## Releases
 
-Every merge to `main` may release. The release workflow reads the commits since the last tag:
-a breaking API change reported by cargo-semver-checks bumps the major, a `feat` the minor, a
-`fix`, `perf` or `refactor` the patch, and anything else ships nothing. A breaking pull request
-carries the `semver-major` label or the semver gate fails it. `docs/releasing.md` has the rest.
+A release is a pull request from `release/vX.Y.Z` which ran `just release X.Y.Z`; its merge
+publishes the crate, tags the version and creates the GitHub release. A breaking API change
+needs a major version, and a breaking pull request carries the `semver-major` label or the semver
+gate fails it. `docs/releasing.md` has the rest.
 
 ## Skills
 
@@ -112,7 +112,7 @@ renames and deletes. Only a reviewer adds `size-exempt`.
 
 ## Enforcement
 
-`just check` runs `scripts/comment-scan.sh`, which fails on any comment longer than one line,
+`just lint` runs `scripts/comment-scan.sh`, which fails on any comment longer than one line,
 `scripts/doc-scan.sh`, which fails on any Rust example the doc tests skip, and
 `scripts/layout-scan.sh`, which fails on scoped visibility or a module file paired with a directory.
 Fix a violation by deleting lines or renaming, never by rewording around the rule.

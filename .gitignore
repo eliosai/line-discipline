@@ -14,3 +14,8 @@ junit.xml
 !.claude/skills
 .mcp.json
 __pycache__/
+
+# reports the mutants and coverage recipes write
+mutants.out/
+mutants.diff
+lcov.info

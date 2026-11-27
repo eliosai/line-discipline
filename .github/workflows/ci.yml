@@ -1,16 +1,12 @@
 name: ci
-# Every check a pull request has to pass
-# Nothing here benchmarks: benchmarks measure their neighbours on a shared runner, so they live in bench.yml
+# Every check a pull request has to pass; `gate` is the one check the main ruleset requires
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
-  push:
-    branches: [main]
-  workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
@@ -19,8 +15,8 @@ permissions:
 jobs:
   # Every file level check, run through prek so a commit hook and this job can never disagree
   lint:
-    if: ${{ github.event_name == 'push' || !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,9 +36,9 @@ jobs:
 
   # The type check, the feature sweep and clippy
   check:
-    if: ${{ github.event_name == 'push' || !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -56,9 +52,9 @@ jobs:
 
   # The suite, the doc tests and the rendered docs, which run beside the checks rather than after them
   test:
-    if: ${{ github.event_name == 'push' || !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -79,8 +75,8 @@ jobs:
 
   # What every publishable crate ships, and what its dependency tree is allowed to carry
   package:
-    if: ${{ github.event_name == 'push' || !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -94,8 +90,8 @@ jobs:
 
   # The floor the manifests declare, which an importer may resolve to
   msrv:
-    if: ${{ github.event_name == 'push' || !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -109,8 +105,8 @@ jobs:
 
   # The library has importers, so a break in its surface costs a major release
   semver:
-    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -131,9 +127,9 @@ jobs:
 
   # A mutant no test noticed is a hole the suite claims to cover
   mutants:
-    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -158,9 +154,9 @@ jobs:
 
   # Coverage is a figure to read, never a gate: a percentage is a trend, and a trend cannot fail a build
   coverage:
-    if: ${{ github.event_name == 'push' || !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -177,8 +173,8 @@ jobs:
 
   # A diff past the review budget is a diff nobody reads line by line
   size:
-    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
-    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -191,3 +187,48 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
         run: bash scripts/pr-size-gate.sh
+
+  # A version no tag names ships on merge, so only release/vX.Y.Z may carry it, with no API break that version may not carry
+  release:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: plan
+        run: |
+          set -o pipefail
+          bash scripts/release.sh plan | tee -a "$GITHUB_OUTPUT"
+      - if: ${{ steps.plan.outputs.version != '' }}
+        uses: ./.github/actions/setup-rust
+        with:
+          tools: cargo-semver-checks
+      - if: ${{ steps.plan.outputs.version != '' }}
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash scripts/release.sh check "$HEAD_REF" "$HEAD_SHA"
+
+  # Miri, the careful build, the minimal versions and the links, before a version ships
+  deep:
+    needs: release
+    if: ${{ needs.release.outputs.version != '' }}
+    uses: ./.github/workflows/deep.yml
+
+  # The one required check: every job above that guards the merge passed or had nothing to judge
+  gate:
+    needs: [lint, check, test, package, msrv, semver, mutants, size, release, deep]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<<"$RESULTS"
+          jq -e 'all(.[]; .result == "success" or .result == "skipped")' <<<"$RESULTS" >/dev/null
