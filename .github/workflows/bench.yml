@@ -1,58 +1,74 @@
 name: bench
+# Benchmarks only ever run on CodSpeed hardware, since a shared runner measures its neighbours
 
 on:
+  # A macro minute is billed, so the paths decide whether this runs
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "src/**"
+      - "benches/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/bench.yml"
+      - ".github/actions/setup-rust/action.yml"
   push:
     branches: [main]
+    paths:
+      - "src/**"
+      - "benches/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/bench.yml"
+      - ".github/actions/setup-rust/action.yml"
   workflow_dispatch:
-
-permissions:
-  contents: read
-  id-token: write
 
 concurrency:
   group: bench-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
-  bench:
+  # Instructions and memory, which a simulated cpu reads the same way on any machine
+  simulation:
     if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     runs-on: codspeed-macro
-    timeout-minutes: 20
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@master
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          toolchain: "1.97"
-      - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@v2
+          persist-credentials: false
+      - uses: ./.github/actions/setup-rust
         with:
-          tool: cargo-codspeed
-      - name: build the benches
-        run: cargo codspeed build -m simulation
-      - name: run the benches on CodSpeed
-        uses: CodSpeedHQ/action@v5
+          tools: just,cargo-codspeed
+      - run: just bench-build
+      - uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea # v5.2.1
         with:
           mode: simulation
-          run: cargo codspeed run -m simulation
-  bench-walltime:
-    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+          run: just bench-run
+
+  # Walltime reads what a syscall hides from simulation, on a manual run so it does not spend the budget
+  walltime:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: codspeed-macro
-    timeout-minutes: 20
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@master
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          toolchain: "1.97"
-      - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@v2
+          persist-credentials: false
+      - uses: ./.github/actions/setup-rust
         with:
-          tool: cargo-codspeed
-      - name: build the benches
-        run: cargo codspeed build -m walltime
-      - name: run the benches on CodSpeed
-        uses: CodSpeedHQ/action@v5
+          tools: just,cargo-codspeed
+      - run: just bench-build walltime
+      - uses: CodSpeedHQ/action@373d6868929f444bc08d901fd0eb0ad52a8875ea # v5.2.1
         with:
           mode: walltime
-          run: cargo codspeed run -m walltime
+          run: just bench-run walltime
