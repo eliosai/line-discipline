@@ -73,6 +73,23 @@ jobs:
           detailed_summary: true
           include_passed: false
 
+  # Fresh fuzzed cases replayed against a real pty, whose termios needs Python 3.14 for IUTF8
+  fuzz:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+      - uses: ./.github/actions/setup-rust
+        with:
+          tools: just,cargo-nextest
+      - run: just fuzz-ci
+
   # What every publishable crate ships, and what its dependency tree is allowed to carry
   package:
     if: ${{ !github.event.pull_request.draft }}
@@ -222,7 +239,7 @@ jobs:
 
   # The one required check: every job above that guards the merge passed or had nothing to judge
   gate:
-    needs: [lint, check, test, package, msrv, semver, mutants, size, release, deep]
+    needs: [lint, check, test, fuzz, package, msrv, semver, mutants, size, release, deep]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
