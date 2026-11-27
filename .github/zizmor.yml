@@ -4,9 +4,7 @@ rules:
   self-repository:
     ignore:
       - ci.yml
-      - bench.yml
-      - nightly.yml
-      - privileged.yml
+      - deep.yml
       - release.yml
   unpinned-uses:
     config:

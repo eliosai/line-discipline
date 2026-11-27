@@ -127,12 +127,12 @@ The `rkyv` feature derives `rkyv::Archive`, `Serialize` and `Deserialize` for `S
 ## Building and testing
 
 ```text
-just check          # comment, doc and layout scans, fmt, check, clippy -D warnings
+just check          # fmt, feature powerset, clippy -D warnings
 just test           # the suite under cargo nextest
 just test-doc       # every example in this README and the docs
 just doc-check      # the docs.rs build with warnings denied
 just semver-check   # the public API against the last release
-just ci             # all of it, the way the gate runs
+just ci             # the build and test checks the gate runs
 ```
 
 ## License

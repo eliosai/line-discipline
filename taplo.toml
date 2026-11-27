@@ -1,6 +1,6 @@
 # One TOML shape across every manifest and config in the tree
 include = [ "**/*.toml" ]
-exclude = [ "target/**", "fuzz/target/**", "crates/ebpf/target/**" ]
+exclude = [ "target/**" ]
 
 [formatting]
 align_entries = false

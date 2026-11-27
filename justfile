@@ -5,8 +5,7 @@
 default:
     @just --list
 
-# Scan comments, docs and layout, then format-check, type-check and lint both feature sets
-# Run every file level check, which is the same set prek runs on a commit and ci runs on a push
+# Run every file level check, which is the same set prek runs on a commit and ci runs on a pull request
 lint:
     prek run --all-files
 
@@ -98,11 +97,15 @@ hooks:
 hooks-run:
     prek run --all-files
 
-# Print the version the next merge to main would release
-release-plan:
-    bash scripts/release.sh --dry-run
+# Write X.Y.Z into the manifest, the lockfile and CHANGELOG.md, for a pull request from release/vX.Y.Z
+release version:
+    bash scripts/release.sh bump "{{ version }}"
 
-# Run everything the gate runs
+# Print the version main would publish now, which is empty while its version has a tag
+release-plan:
+    bash scripts/release.sh plan
+
+# Run the build and test checks the pull request gate runs
 ci:
     just lint
     just check
