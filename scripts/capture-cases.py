@@ -268,6 +268,33 @@ CASES = [
     Case("out_no_opost_no_column", [r(b"ab"), m(b"\t\x7f\n")], oflag=0),
     Case("echo_escape_column_no_opost", [m(b"\xff\n\t\x7f\n")], oflag=0),
     Case("eol_at_line_limit", [m(A[:4096] + b"#")], cc={V["VEOL"]: 0x23}),
+    Case("eol_parmrk_plain", [m(b"a#")], iflag=flags(BASE_I, "PARMRK"), cc={V["VEOL"]: 0x23}),
+    Case("echo_commits_before_stop", [m(A[:300] + b"\x13" + b"b" * 10), m(b"\x11")]),
+    Case("echo_commits_two_blocks_before_stop", [m(A[:600] + b"\x13" + b"b" * 10), m(b"\x11")]),
+    Case("echo_commits_below_watermark_held", [m(A[:200] + b"\x13" + b"b" * 10), m(b"\x11")]),
+    Case("held_echo_discards_oldest", [m(b"\x13"), m(A[:4000]), m(b"\x11")]),
+    Case("held_ctl_echo_discards_oldest", [m(b"\x13"), m(b"\x01" * 1950), m(b"\x11")]),
+    Case("held_tab_erase_discards_oldest", [m(b"\x13"), m(b"a\t\x7f" * 1000), m(b"\x11")]),
+    Case("erase_tab_after_tab", [m(b"ab\t\t\x7f\x7f\n")]),
+    Case("erase_tab_after_tab_xtabs", [m(b"abc\tx\t\x7f\x7f\x7f\n")], oflag=flags(BASE_O, "XTABS")),
+    Case(
+        "echoprt_utf8_then_tab",
+        [m(b"a\xc3\xa9\x7f\t\n")],
+        iflag=flags(BASE_I, "IUTF8"),
+        oflag=flags(BASE_O, "XTABS"),
+        lflag=flags(BASE_L, "ECHOPRT"),
+    ),
+    Case("echo_op_crosses_watermark_before_stop", [m(b"a" + b"\x01" * 128 + b"\x13b"), m(b"\x11")]),
+    Case(
+        "ixany_running_keeps_silent_echo",
+        [("tcoff",), m(b"ab"), ("set", Case("", [], iflag=flags(BASE_I, "IXANY"), lflag=flags(BASE_L, drop="ECHO"))), ("tcon",), m(b"c")],
+        iflag=flags(BASE_I, "IXANY"),
+    ),
+    Case(
+        "silent_input_keeps_uncommitted_erase",
+        [m(b"\x13"), m(b"ab\x7f"), ("set", Case("", [], iflag=flags(BASE_I, drop="IXON"), lflag=flags(BASE_L, drop="ECHO"))), m(b"c")],
+    ),
+    Case("set_keeping_ixon_stays_stopped", [m(b"\x13ab"), ("set", Case("", [], iflag=flags(BASE_I, "IXANY"))), r(b"x")]),
 ]
 
 
