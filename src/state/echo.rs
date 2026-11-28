@@ -17,9 +17,6 @@ const MOVE_BACK_COL: u8 = 0x80;
 /// Bytes the kernel's echo buffer holds, its `N_TTY_BUF_SIZE`
 const BUF_SIZE: usize = 4096;
 
-/// `ECHO_COMMIT_WATERMARK`, the bytes that must wait before a commit writes them out
-const COMMIT_WATERMARK: usize = 256;
-
 /// `ECHO_BLOCK`, the granularity of commits past the watermark
 const BLOCK: usize = 256;
 
@@ -76,7 +73,8 @@ pub fn commit(state: &mut State, to_master: &mut Vec<u8>) {
     let head = state.echo.len();
     state.echo_mark = head;
     let old = state.echo_commit;
-    if head < COMMIT_WATERMARK || within_block(head) > within_block(old) {
+    // a running output drains every commit, so under one block the head already sits past `old`
+    if within_block(head) > within_block(old) {
         return;
     }
     state.echo_commit = head;
@@ -100,8 +98,8 @@ pub fn release(state: &mut State, to_master: &mut Vec<u8>) {
 /// `flush_echoes`: writes out every echo byte at the end of an input call
 pub fn flush(state: &mut State, to_master: &mut Vec<u8>) {
     let head = state.echo.len();
-    let silent = !state.lflag(Termios::ECHO) && !state.lflag(Termios::ECHONL);
-    if silent || state.echo_commit == head {
+    // every echo byte is committed as it lands, so silent input finds nothing past the commit
+    if state.echo_commit == head {
         return;
     }
     state.echo_commit = head;
